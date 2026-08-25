@@ -42,6 +42,9 @@
             <option value="circle">Kreis…</option>
             <option value="ellipse">Ellipse…</option>
             <option value="triangle">Dreieck…</option>
+            <option value="rhombus">Raute…</option>
+            <option value="trapezoid">Trapez…</option>
+            <option value="parallelogram">Parallelogramm…</option>
           </select>
         </div>
 
@@ -120,6 +123,61 @@
           <p class="form-error" id="triangleGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.</p>
         </div>
 
+        <div class="form-group" id="rhombusGridGroup" style="display:none">
+          <label class="form-label">Rauten-Größe</label>
+          <div class="custom-grid-row">
+            <div class="custom-grid-field">
+              <label class="form-hint" for="rhombusWidth">Breite (Mitte)</label>
+              <input class="form-input" type="number" id="rhombusWidth" min="1" step="2" value="5">
+            </div>
+            <span class="custom-grid-x">×</span>
+            <div class="custom-grid-field">
+              <label class="form-hint" for="rhombusHeight">Höhe</label>
+              <input class="form-input" type="number" id="rhombusHeight" min="1" value="5">
+            </div>
+          </div>
+          <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis zur Mitte auf „Breite" an und nimmt danach spiegelbildlich wieder ab (z. B. 5×5 → Reihenbreiten 1,3,5,3,1).</p>
+          <p class="form-error" id="rhombusGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.</p>
+        </div>
+
+        <div class="form-group" id="trapezoidGridGroup" style="display:none">
+          <label class="form-label">Trapez-Größe</label>
+          <div class="custom-grid-row">
+            <div class="custom-grid-field">
+              <label class="form-hint" for="trapezoidTop">Oberseite</label>
+              <input class="form-input" type="number" id="trapezoidTop" min="1" value="3">
+            </div>
+            <span class="custom-grid-x">×</span>
+            <div class="custom-grid-field">
+              <label class="form-hint" for="trapezoidHeight">Höhe</label>
+              <input class="form-input" type="number" id="trapezoidHeight" min="1" value="3">
+            </div>
+          </div>
+          <p class="form-hint">Jede Reihe wächst von der Oberseite ausgehend um genau 2 Punkte. Unterseite = Oberseite + 2×(Höhe−1) — automatisch berechnet, immer zentriert.</p>
+          <p class="form-error" id="trapezoidGridError">Oberseite und Höhe müssen mindestens 1 betragen.</p>
+        </div>
+
+        <div class="form-group" id="parallelogramGridGroup" style="display:none">
+          <label class="form-label">Parallelogramm-Größe</label>
+          <div class="custom-grid-row">
+            <div class="custom-grid-field">
+              <label class="form-hint" for="parallelogramSide">Seitenlänge</label>
+              <input class="form-input" type="number" id="parallelogramSide" min="1" value="4">
+            </div>
+            <span class="custom-grid-x">×</span>
+            <div class="custom-grid-field">
+              <label class="form-hint" for="parallelogramHeight">Höhe</label>
+              <input class="form-input" type="number" id="parallelogramHeight" min="1" value="3">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:var(--space-3);margin-bottom:0">
+            <label class="form-hint" for="parallelogramOffset">Versatz pro Reihe</label>
+            <input class="form-input" type="number" id="parallelogramOffset" value="-1">
+          </div>
+          <p class="form-hint">Jede Reihe hat dieselbe Seitenlänge, verschiebt sich aber kumulativ um „Versatz" Spalten gegenüber der vorherigen Reihe. Negativ = nach links, positiv = nach rechts. Beispiel: Versatz −2 verschiebt Reihe 2 um 2, Reihe 3 um 4 Punkte nach links.</p>
+          <p class="form-error" id="parallelogramGridError">Seitenlänge und Höhe müssen mindestens 1 betragen.</p>
+        </div>
+
         <div class="form-group">
           <label class="checkbox-row" for="forbiddenEnabled">
             <input type="checkbox" id="forbiddenEnabled">
@@ -147,18 +205,50 @@
             <input type="checkbox" id="avoidConcentration">
             <span class="form-label" style="margin:0">Konzentration vermeiden</span>
           </label>
-          <label class="checkbox-row" for="treeMode" style="margin-bottom:0">
+          <label class="checkbox-row" for="treeMode">
             <input type="checkbox" id="treeMode">
             <span class="form-label" style="margin:0">Ast-Generierung</span>
           </label>
-          <p class="form-hint">Ast-Generierung erzeugt verzweigende Äste ohne Rückverbindung statt einer durchgehenden Linie und schließt „Punktbelastung vermeiden“ automatisch ein.</p>
+          <label class="checkbox-row" for="multiMode" style="margin-bottom:0">
+            <input type="checkbox" id="multiMode">
+            <span class="form-label" style="margin:0">Mehrere Elemente</span>
+          </label>
+          <p class="form-hint">Ast-Generierung erzeugt verzweigende Äste ohne Rückverbindung statt einer durchgehenden Linie und schließt „Punktbelastung vermeiden“ automatisch ein. „Mehrere Elemente“ erzeugt stattdessen mehrere getrennte, unverbundene Linien, die sich denselben Punktevorrat teilen — beide Modi schließen sich gegenseitig aus.</p>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="stepsGroup">
           <label class="form-label" for="stepsInput">Schritte</label>
           <input class="form-input" type="number" id="stepsInput" min="1" value="8">
           <p class="form-hint">Maximal möglich: <strong id="maxSteps">–</strong> <span id="maxStepsQualifier"></span></p>
           <p class="form-error" id="stepsError">Die Anzahl der Schritte darf das Maximum nicht überschreiten.</p>
+        </div>
+
+        <div class="form-group" id="multiFieldsGroup" style="display:none">
+          <label class="form-label">Mehrere Elemente</label>
+          <div class="custom-grid-row">
+            <div class="custom-grid-field">
+              <label class="form-hint" for="multiTotalPoints">Gesamtzahl Punkte</label>
+              <input class="form-input" type="number" id="multiTotalPoints" min="4" value="10">
+            </div>
+            <span class="custom-grid-x">/</span>
+            <div class="custom-grid-field">
+              <label class="form-hint" for="multiElementCount">Anzahl Elemente</label>
+              <input class="form-input" type="number" id="multiElementCount" min="1" value="2">
+            </div>
+          </div>
+          <div class="custom-grid-row" style="margin-top:var(--space-3)">
+            <div class="custom-grid-field">
+              <label class="form-hint" for="multiMinPoints">Min. Punkte/Element</label>
+              <input class="form-input" type="number" id="multiMinPoints" min="2" value="2">
+            </div>
+            <span class="custom-grid-x">–</span>
+            <div class="custom-grid-field">
+              <label class="form-hint" for="multiMaxPoints">Max. Punkte/Element</label>
+              <input class="form-input" type="number" id="multiMaxPoints" min="2" value="6">
+            </div>
+          </div>
+          <p class="form-hint">Die Gesamtzahl Punkte wird auf die Elemente aufgeteilt (jedes zwischen Min. und Max.), ohne dass sich Elemente Punkte teilen. Gesamtzahl ÷ Anzahl Elemente darf nie unter 2 fallen — sonst reichen die Punkte für keine einzige Linie. „Alle Kombinationen“ ist in diesem Modus nicht verfügbar.</p>
+          <p class="form-error" id="multiFieldsError">Diese Kombination aus Gesamtzahl, Anzahl Elementen, Min. und Max. ist nicht erfüllbar.</p>
         </div>
 
         <div class="form-group" style="margin-bottom:0">

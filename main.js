@@ -29,6 +29,13 @@
   const GENERATION_NODE_BUDGET = 200000; // Rekursionsschritte pro Generierungsversuch
   const GENERATION_RETRIES     = 5;
 
+  // "Mehrere Elemente": pro Element eigenes Budget, plus Versuche für die
+  // Gesamtkonstruktion (Größenverteilung + alle Elemente), falls ein
+  // einzelnes Element mit der gewählten Punktzahl/Restfläche nicht
+  // erzeugbar ist.
+  const MULTI_NODE_BUDGET_PER_ELEMENT = 100000;
+  const MULTI_RETRIES                 = 8;
+
   // "Alle Kombinationen" hat KEIN festes Anzeige-Limit mehr. Stattdessen:
   // - Ergebnisse werden per Generator lazy berechnet (nur was gebraucht wird)
   // - jeder Ladeschritt läuft zeitgescheibelt, damit der Main-Thread nie blockiert
@@ -304,42 +311,25 @@
   }
 
   /* =====================================================
-     DREIECK-RASTER
-     Reihe 0 (oben) hat 1 Punkt, jede weitere Reihe wird breiter,
-     bis Reihe (height-1) (unten) genau `width` Punkte hat. Alle
-     Reihenbreiten sind ungerade und zentriert unter derselben
-     Spitzenspalte — deshalb MUSS `width` ungerade sein (sonst wäre
-     die unterste Reihe nicht symmetrisch zur Spitze zentrierbar).
-
-     Bei width = 2·height−1 (Standardfall, z. B. Breite 5/Höhe 3 aus
-     der Vorlage) wächst jede Reihe um genau 2 Punkte. Sind Breite
-     und Höhe unabhängig davon gewählt, interpoliert die Formel die
-     "Anzahl der +2-Schritte" linear zwischen Reihe 0 und der
-     letzten Reihe und rundet — das garantiert weiterhin durchweg
-     ungerade, symmetrisch zentrierte Reihenbreiten, auch wenn dabei
-     einzelne Reihen dieselbe Breite wiederholen (Plateau).
+     Gemeinsamer Helper für zeilenweise verjüngte/erweiterte Raster
+     (Dreieck, Trapez): jede Reihe hat eine über `rowWidthFn(r)`
+     bestimmte Breite und ist zentriert unter derselben Spalte
+     platziert. King-Move-Nachbarschaft, existenzgeprüft.
      ===================================================== */
-  function buildTriangleGridDefinition(width, height) {
-    function rowWidth(i) {
-      if (height === 1) return width;
-      const steps = Math.round(i * ((width - 1) / 2) / (height - 1));
-      return 1 + 2 * steps;
-    }
-
+  function buildTaperedRowGridDefinition(shape, height, maxDim, rowWidthFn, extraProps) {
     const VIEW = 320;
     const margin = 40;
-    const maxDim = Math.max(width, height);
     const spacing = maxDim === 1 ? 0 : (VIEW - 2 * margin) / (maxDim - 1);
     const gridHeightPx = (height - 1) * spacing;
-    const offsetX = margin + (VIEW - 2 * margin) / 2; // Spitzenspalte bleibt zentriert
+    const offsetX = margin + (VIEW - 2 * margin) / 2; // zentrierte Spalte bleibt bei 0
     const offsetY = margin + ((VIEW - 2 * margin) - gridHeightPx) / 2;
 
     const points = {};
     const coordToId = {};
     let id = 1;
     for (let r = 0; r < height; r++) {
-      const w = rowWidth(r);
-      const colStart = -(w - 1) / 2; // relativ zur zentrierten Spitzenspalte (Spalte 0)
+      const w = rowWidthFn(r);
+      const colStart = -(w - 1) / 2;
       for (let i = 0; i < w; i++) {
         const c = colStart + i;
         points[id] = { x: offsetX + c * spacing, y: offsetY + r * spacing };
@@ -351,7 +341,7 @@
     const adjacency = {};
     Object.keys(points).forEach(k => (adjacency[k] = []));
     for (let r = 0; r < height; r++) {
-      const w = rowWidth(r);
+      const w = rowWidthFn(r);
       const colStart = -(w - 1) / 2;
       for (let i = 0; i < w; i++) {
         const c = colStart + i;
@@ -373,7 +363,161 @@
       stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
     };
 
-    return { shape: 'triangle', width, height, cols: width, rows: height, points, adjacency, style, spacing };
+    return Object.assign({ shape, height, points, adjacency, style, spacing }, extraProps);
+  }
+
+  /* =====================================================
+     DREIECK-RASTER
+     Reihe 0 (oben) hat 1 Punkt, jede weitere Reihe wird breiter,
+     bis Reihe (height-1) (unten) genau `width` Punkte hat. Alle
+     Reihenbreiten sind ungerade und zentriert unter derselben
+     Spitzenspalte — deshalb MUSS `width` ungerade sein (sonst wäre
+     die unterste Reihe nicht symmetrisch zur Spitze zentrierbar).
+
+     Bei width = 2·height−1 (Standardfall, z. B. Breite 5/Höhe 3 aus
+     der Vorlage) wächst jede Reihe um genau 2 Punkte. Sind Breite
+     und Höhe unabhängig davon gewählt, interpoliert die Formel die
+     "Anzahl der +2-Schritte" linear zwischen Reihe 0 und der
+     letzten Reihe und rundet — das garantiert weiterhin durchweg
+     ungerade, symmetrisch zentrierte Reihenbreiten, auch wenn dabei
+     einzelne Reihen dieselbe Breite wiederholen (Plateau).
+     ===================================================== */
+  function buildTriangleGridDefinition(width, height) {
+    function rowWidth(i) {
+      if (height === 1) return width;
+      const steps = Math.round(i * ((width - 1) / 2) / (height - 1));
+      return 1 + 2 * steps;
+    }
+    const maxDim = Math.max(width, height);
+    return buildTaperedRowGridDefinition('triangle', height, maxDim, rowWidth, {
+      width, cols: width, rows: height
+    });
+  }
+
+  /* =====================================================
+     RAUTE-RASTER
+     Eine Raute ist im Kern ein Dreieck, das sich nach der Mitte
+     hin wieder symmetrisch verjüngt: Reihe 0 (oben) hat 1 Punkt,
+     die Breite wächst zur mittleren Reihe hin auf `width` an und
+     nimmt danach spiegelbildlich wieder auf 1 ab (klassische Raute
+     bei width=height, z. B. 5×5 → Reihenbreiten 1,3,5,3,1).
+
+     Wie beim Dreieck wird die "Anzahl der +2-Schritte" linear
+     interpoliert und gerundet — hier bezogen auf den Abstand jeder
+     Reihe zur Mitte statt zur Spitze. Das garantiert wie beim
+     Dreieck durchweg ungerade, zentrierte Reihenbreiten; deshalb
+     MUSS `width` ungerade sein. Bei gerader Höhe gibt es keine
+     exakte Mittelreihe — die beiden mittleren Reihen erreichen dann
+     ggf. nicht ganz die volle Breite (siehe H=4/W=5 → 1,3,3,1),
+     analog zum "Plateau"-Verhalten bei Dreieck/Hexagon.
+     ===================================================== */
+  function buildRhombusGridDefinition(width, height) {
+    function rowWidth(r) {
+      if (height === 1) return width;
+      const center = (height - 1) / 2;
+      const dist = Math.abs(r - center);
+      const steps = Math.round((1 - dist / center) * ((width - 1) / 2));
+      return 1 + 2 * steps;
+    }
+    const maxDim = Math.max(width, height);
+    return buildTaperedRowGridDefinition('rhombus', height, maxDim, rowWidth, {
+      width, cols: width, rows: height
+    });
+  }
+
+  /* =====================================================
+     TRAPEZ-RASTER
+     Reihe 0 (oben, kurze Seite) hat `top` Punkte, jede weitere Reihe
+     wächst um genau 2 Punkte, bis Reihe (height-1) (unten, lange
+     Seite) erreicht ist: Unterseite = top + 2×(Höhe−1) — durch vier
+     Beispiele verifiziert (2×4→8, 3×3→7, 4×3→8, 5×4→11). Da JEDE
+     Reihe um genau 2 wächst, teilen sich Ober- und Unterseite immer
+     dieselbe Parität; die Differenz (Unterseite − Reihenbreite) ist
+     dadurch automatisch immer gerade — anders als beim Dreieck muss
+     `top` deshalb NICHT zwingend ungerade sein, die Zentrierung
+     funktioniert für jede Startbreite.
+     ===================================================== */
+  function buildTrapezoidGridDefinition(top, height) {
+    function rowWidth(i) { return top + 2 * i; }
+    const bottom = top + 2 * (height - 1);
+    const maxDim = Math.max(bottom, height);
+    return buildTaperedRowGridDefinition('trapezoid', height, maxDim, rowWidth, {
+      top, bottom, cols: bottom, rows: height
+    });
+  }
+
+  /* =====================================================
+     PARALLELOGRAMM-RASTER
+     Jede Reihe hat konstant `sideLength` Punkte (anders als bei
+     Dreieck/Trapez ändert sich die Reihenbreite nicht) — stattdessen
+     verschiebt sich die START-Spalte jeder Reihe kumulativ um
+     `offset` relativ zur vorherigen Reihe: Reihe r beginnt bei
+     Spalte r×offset. Ein Versatz von -1 schiebt jede Reihe einen
+     Punkt nach links, +2 schiebt zwei Punkte nach rechts — jeweils
+     aufsummiert über alle vorherigen Reihen, nicht nur einmalig.
+     Gegen zwei Referenzfotos verifiziert (Seitenlänge 4, Höhe 3,
+     Versatz -1 bzw. -2). King-Move-Nachbarschaft wie bei allen
+     anderen Rastern, existenzgeprüft.
+     ===================================================== */
+  function buildParallelogramGridDefinition(sideLength, height, offset) {
+    let minCol = Infinity, maxCol = -Infinity;
+    for (let r = 0; r < height; r++) {
+      const start = r * offset;
+      minCol = Math.min(minCol, start);
+      maxCol = Math.max(maxCol, start + sideLength - 1);
+    }
+    const totalCols = maxCol - minCol + 1;
+
+    const VIEW = 320;
+    const margin = 40;
+    const maxDim = Math.max(totalCols, height);
+    const spacing = maxDim === 1 ? 0 : (VIEW - 2 * margin) / (maxDim - 1);
+    const gridWidthPx = (totalCols - 1) * spacing;
+    const gridHeightPx = (height - 1) * spacing;
+    const offsetX = margin + ((VIEW - 2 * margin) - gridWidthPx) / 2;
+    const offsetY = margin + ((VIEW - 2 * margin) - gridHeightPx) / 2;
+
+    const points = {};
+    const coordToId = {};
+    let id = 1;
+    for (let r = 0; r < height; r++) {
+      const rowStart = r * offset - minCol;
+      for (let i = 0; i < sideLength; i++) {
+        const c = rowStart + i;
+        points[id] = { x: offsetX + c * spacing, y: offsetY + r * spacing };
+        coordToId[r + ',' + c] = id;
+        id++;
+      }
+    }
+
+    const adjacency = {};
+    Object.keys(points).forEach(k => (adjacency[k] = []));
+    for (let r = 0; r < height; r++) {
+      const rowStart = r * offset - minCol;
+      for (let i = 0; i < sideLength; i++) {
+        const c = rowStart + i;
+        const vId = coordToId[r + ',' + c];
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const key = (r + dr) + ',' + (c + dc);
+            if (coordToId[key] !== undefined) adjacency[vId].push(coordToId[key]);
+          }
+        }
+      }
+    }
+
+    const style = {
+      rActive: clamp(9 - (maxDim - 3) * 0.85, 2.6, 9),
+      rInactive: clamp(6 - (maxDim - 3) * 0.55, 1.8, 6),
+      font: clamp(9 - (maxDim - 3) * 0.7, 3.6, 9),
+      stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
+    };
+
+    return {
+      shape: 'parallelogram', sideLength, height, offset,
+      cols: totalCols, rows: height, points, adjacency, style, spacing
+    };
   }
 
   /* =====================================================
@@ -745,6 +889,114 @@
   }
 
   /* =====================================================
+     MEHRERE ELEMENTE
+     Statt eines einzelnen Elements entstehen `count` getrennte,
+     unverbundene Linien (einfache Pfade ohne Punktwiederholung),
+     die sich gemeinsam den Punktevorrat `total` teilen — kein
+     Punkt taucht in mehr als einem Element auf. Jedes Element
+     bekommt dabei zwischen `min` und `max` Punkten zugewiesen.
+
+     Ablauf pro Versuch:
+     1. distributeSizes(...) verteilt `total` Punkte zufällig auf
+        `count` Elemente (jedes startet bei `min`, der Rest wird
+        zufällig auf Elemente mit noch freier Kapazität bis `max`
+        verteilt).
+     2. Für jede Elementgröße wird — in zufälliger Reihenfolge —
+        ein einfacher Pfad exakt dieser Punktzahl gesucht, wobei
+        bereits von früheren Elementen belegte Punkte (`globalUsed`)
+        komplett als Kandidaten ausscheiden (kein Punkt wird
+        zwischen Elementen geteilt).
+
+     Schlägt ein Element fehl (z. B. weil die verbleibenden freien
+     Punkte keinen zusammenhängenden Pfad dieser Länge mehr
+     hergeben), wird der gesamte Versuch verworfen und neu
+     gestartet (MULTI_RETRIES) — mit frischer Größenverteilung und
+     frischer Zufallsreihenfolge.
+     ===================================================== */
+  function distributeSizes(total, count, min, max) {
+    if (count * min > total || total > count * max) return null;
+    const sizes = new Array(count).fill(min);
+    const capacity = new Array(count).fill(max - min);
+    let remaining = total - count * min;
+    while (remaining > 0) {
+      const candidates = [];
+      for (let i = 0; i < count; i++) if (capacity[i] > 0) candidates.push(i);
+      if (candidates.length === 0) return null; // sollte nach obigem Check nicht vorkommen
+      const idx = candidates[Math.floor(Math.random() * candidates.length)];
+      sizes[idx]++;
+      capacity[idx]--;
+      remaining--;
+    }
+    return sizes;
+  }
+
+  // Sucht einen einfachen Pfad (keine Punktwiederholung) mit genau
+  // `targetPoints` Punkten, dessen Punkte allesamt außerhalb von
+  // `globalUsed` liegen (von anderen Elementen bereits belegte Punkte).
+  // Baugleich zu generateSingleTrail, aber mit zusätzlichem Ausschluss-
+  // Filter und punktbasiertem statt kantenbasiertem Ziel.
+  function generateElementPath(targetPoints, graph, grid, constraints, globalUsed, nodeBudget) {
+    const targetEdges = targetPoints - 1;
+    let budget = nodeBudget;
+    const usedEdges = new Array(graph.edges.length).fill(false);
+
+    function dfs(vertex, path, usedVertexCount, usedSegments) {
+      budget--;
+      if (budget <= 0) return false;
+      if (path.length - 1 === targetEdges) return true;
+      const rawOptions = graph.byVertex[vertex].filter(o => !usedEdges[o.edgeId] && !globalUsed.has(o.to));
+      const options = shuffle(rawOptions).filter(opt => passesConstraints(vertex, opt, grid, constraints, usedVertexCount, usedSegments));
+      for (const opt of options) {
+        usedEdges[opt.edgeId] = true;
+        path.push(opt.to);
+        vcAdd(usedVertexCount, opt.to);
+        usedSegments.push([grid.points[vertex], grid.points[opt.to]]);
+        if (dfs(opt.to, path, usedVertexCount, usedSegments)) return true;
+        usedSegments.pop();
+        vcRemove(usedVertexCount, opt.to);
+        path.pop();
+        usedEdges[opt.edgeId] = false;
+        if (budget <= 0) return false;
+      }
+      return false;
+    }
+
+    const starts = shuffle(graph.vertices.filter(v => !globalUsed.has(v)));
+    for (const start of starts) {
+      usedEdges.fill(false);
+      const path = [start];
+      const usedVertexCount = new Map();
+      vcAdd(usedVertexCount, start);
+      if (dfs(start, path, usedVertexCount, [])) return path;
+      if (budget <= 0) break;
+    }
+    return null;
+  }
+
+  function generateMultiElements(config, graph, grid, constraints) {
+    const sizes = distributeSizes(config.total, config.count, config.min, config.max);
+    if (!sizes) return null;
+    const order = shuffle(sizes.slice());
+    const globalUsed = new Set();
+    const elements = [];
+    for (const size of order) {
+      const path = generateElementPath(size, graph, grid, constraints, globalUsed, MULTI_NODE_BUDGET_PER_ELEMENT);
+      if (!path) return null;
+      path.forEach(v => globalUsed.add(v));
+      elements.push(path);
+    }
+    return { elements };
+  }
+
+  function generateMultiWithRetries(config, graph, grid, constraints) {
+    for (let i = 0; i < MULTI_RETRIES; i++) {
+      const result = generateMultiElements(config, graph, grid, constraints);
+      if (result) return result;
+    }
+    return null;
+  }
+
+  /* =====================================================
      ALLE KOMBINATIONEN (ohne Duplikate) — Lazy Generation
      Statt vorab ein Array mit einer harten Obergrenze zu
      füllen, liefert ein JS-Generator (`function*`) jede
@@ -985,6 +1237,12 @@
     const rootVertex = opts.rootVertex !== undefined && opts.rootVertex !== null
       ? opts.rootVertex
       : (edges.length ? edges[0].from : null);
+    // Mehrere Elemente haben je einen eigenen Startpunkt — rootVertices
+    // (Array) hat Vorrang vor dem einzelnen rootVertex, fällt aber darauf
+    // zurück, damit Trail-/Ast-Aufrufe unverändert funktionieren.
+    const rootVertices = Array.isArray(opts.rootVertices) && opts.rootVertices.length
+      ? opts.rootVertices
+      : (rootVertex !== null ? [rootVertex] : []);
 
     let svg = `<svg class="${opts.mainClass || ''}" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">`;
 
@@ -1031,11 +1289,14 @@
       }
     });
 
-    if (showStartRing && rootVertex !== null) {
-      const startP = points[rootVertex];
-      const delay = animate ? edges.length * 70 + 100 : 0;
-      svg += `<circle class="glyph-start-ring" cx="${startP.x}" cy="${startP.y}" r="${style.rActive + 5}"
-        style="opacity:${animate ? 0 : 1};${animate ? `animation:popPoint var(--dur-slow) var(--ease-out) ${delay}ms forwards` : ''}"/>`;
+    if (showStartRing) {
+      rootVertices.forEach((rv, i) => {
+        const startP = points[rv];
+        if (!startP) return;
+        const delay = animate ? edges.length * 70 + 100 + i * 40 : 0;
+        svg += `<circle class="glyph-start-ring" cx="${startP.x}" cy="${startP.y}" r="${style.rActive + 5}"
+          style="opacity:${animate ? 0 : 1};${animate ? `animation:popPoint var(--dur-slow) var(--ease-out) ${delay}ms forwards` : ''}"/>`;
+      });
     }
 
     svg += `</svg>`;
@@ -1068,7 +1329,8 @@
   function buildStandaloneSVG(grid, graph, edges, opts) {
     const c = getActiveThemeColors();
     const rootVertex = (opts && opts.rootVertex !== undefined) ? opts.rootVertex : (edges.length ? edges[0].from : null);
-    const inner = glyphSVG(grid, graph, edges, { animate: false, showStartRing: true, rootVertex });
+    const rootVertices = (opts && Array.isArray(opts.rootVertices)) ? opts.rootVertices : undefined;
+    const inner = glyphSVG(grid, graph, edges, { animate: false, showStartRing: true, rootVertex, rootVertices });
     const styleBlock = `<style>
       .glyph-edge { fill:none; stroke-linecap:round; }
       .glyph-edge { stroke:${c.accent}; }
@@ -1126,7 +1388,16 @@
       ? `ellipse${currentGrid.rx}x${currentGrid.ry}`
       : currentGrid.shape === 'triangle'
       ? `dreieck${currentGrid.width}x${currentGrid.height}`
+      : currentGrid.shape === 'rhombus'
+      ? `raute${currentGrid.width}x${currentGrid.height}`
+      : currentGrid.shape === 'trapezoid'
+      ? `trapez${currentGrid.top}x${currentGrid.height}`
+      : currentGrid.shape === 'parallelogram'
+      ? `parallelogramm${currentGrid.sideLength}x${currentGrid.height}_versatz${currentGrid.offset}`
       : `${currentGrid.cols}x${currentGrid.rows}`;
+    if (currentSingleResult && currentSingleResult.isMulti) {
+      return `${prefix}_${dims}_${currentSingleResult.elements.length}elemente.${ext}`;
+    }
     const steps = stepsInput.value || '0';
     return `${prefix}_${dims}_${steps}schritte.${ext}`;
   }
@@ -1151,6 +1422,39 @@
     statusBadge.textContent = `${edges.length} Schritte`;
 
     currentSingleResult = { grid, graph, edges, rootVertex, isTree };
+  }
+
+  // Rendering für den "Mehrere Elemente"-Modus: mehrere getrennte,
+  // unverbundene Pfade werden als eine gemeinsame Kantenliste gezeichnet
+  // (jedes Element bekommt einen eigenen Startring) und in der
+  // Punktreihenfolge-Leiste nach Element gruppiert aufgelistet.
+  function renderMulti(grid, graph, multi) {
+    invalidateEnumSession();
+    outputCanvas.classList.remove('combos-mode');
+    outputCanvas.classList.add('single-mode');
+    const elements = multi.elements;
+    const edges = elements.reduce((acc, path) => acc.concat(pathToEdges(path)), []);
+    const rootVertices = elements.map(p => p[0]);
+
+    outputCanvas.innerHTML = glyphSVG(grid, graph, edges, {
+      animate: true, showStartRing: true, mainClass: 'glyph-main', rootVertices
+    });
+
+    sequenceChain.innerHTML = elements.map((path, i) => {
+      const chain = path.map(v => `<span class="badge">${v}</span>`).join('<span class="arrow">→</span>');
+      return `<div style="width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1);margin-bottom:var(--space-1)">
+        <span class="badge badge-orange">Element ${i + 1}</span>${chain}
+      </div>`;
+    }).join('');
+    sequenceFooter.style.display = 'block';
+    outputTitle.textContent = 'Mehrere-Elemente-Glyphe';
+    const totalPoints = elements.reduce((sum, p) => sum + p.length, 0);
+    statusBadge.textContent = `${elements.length} Elemente · ${totalPoints} Punkte`;
+
+    currentSingleResult = {
+      grid, graph, edges, rootVertex: rootVertices.length ? rootVertices[0] : null,
+      rootVertices, isTree: false, isMulti: true, elements
+    };
   }
 
   /* ---------- "Alle Kombinationen" — Lazy-Loading-Ansicht ---------- */
@@ -1299,15 +1603,15 @@
 
   exportSvgBtn.addEventListener('click', () => {
     if (!currentSingleResult) return;
-    const { grid, graph, edges, rootVertex } = currentSingleResult;
-    const svgString = buildStandaloneSVG(grid, graph, edges, { rootVertex });
+    const { grid, graph, edges, rootVertex, rootVertices } = currentSingleResult;
+    const svgString = buildStandaloneSVG(grid, graph, edges, { rootVertex, rootVertices });
     downloadSVGString(svgString, buildExportFilename('glyphe', 'svg'));
   });
 
   exportPngBtn.addEventListener('click', () => {
     if (!currentSingleResult) return;
-    const { grid, graph, edges, rootVertex } = currentSingleResult;
-    const svgString = buildStandaloneSVG(grid, graph, edges, { rootVertex });
+    const { grid, graph, edges, rootVertex, rootVertices } = currentSingleResult;
+    const svgString = buildStandaloneSVG(grid, graph, edges, { rootVertex, rootVertices });
     downloadSVGAsPNG(svgString, buildExportFilename('glyphe', 'png'), PNG_EXPORT_SIZE);
   });
 
@@ -1351,6 +1655,19 @@
   const triangleWidth      = document.getElementById('triangleWidth');
   const triangleHeight     = document.getElementById('triangleHeight');
   const triangleGridError  = document.getElementById('triangleGridError');
+  const rhombusGridGroup   = document.getElementById('rhombusGridGroup');
+  const rhombusWidth       = document.getElementById('rhombusWidth');
+  const rhombusHeight      = document.getElementById('rhombusHeight');
+  const rhombusGridError   = document.getElementById('rhombusGridError');
+  const trapezoidGridGroup = document.getElementById('trapezoidGridGroup');
+  const trapezoidTop       = document.getElementById('trapezoidTop');
+  const trapezoidHeight    = document.getElementById('trapezoidHeight');
+  const trapezoidGridError = document.getElementById('trapezoidGridError');
+  const parallelogramGridGroup = document.getElementById('parallelogramGridGroup');
+  const parallelogramSide      = document.getElementById('parallelogramSide');
+  const parallelogramHeight    = document.getElementById('parallelogramHeight');
+  const parallelogramOffset    = document.getElementById('parallelogramOffset');
+  const parallelogramGridError = document.getElementById('parallelogramGridError');
   const forbiddenEnabled   = document.getElementById('forbiddenEnabled');
   const forbiddenFieldWrap = document.getElementById('forbiddenFieldWrap');
   const forbiddenInput     = document.getElementById('forbiddenInput');
@@ -1360,10 +1677,19 @@
   const avoidPointReuseBox   = document.getElementById('avoidPointReuse');
   const avoidConcentrationBox = document.getElementById('avoidConcentration');
   const treeModeBox          = document.getElementById('treeMode');
+  const multiModeBox         = document.getElementById('multiMode');
+  const stepsGroup         = document.getElementById('stepsGroup');
   const stepsInput         = document.getElementById('stepsInput');
   const maxStepsLabel      = document.getElementById('maxSteps');
   const maxStepsQualifier  = document.getElementById('maxStepsQualifier');
   const stepsError         = document.getElementById('stepsError');
+  const multiFieldsGroup   = document.getElementById('multiFieldsGroup');
+  const multiTotalPoints   = document.getElementById('multiTotalPoints');
+  const multiElementCount  = document.getElementById('multiElementCount');
+  const multiMinPoints     = document.getElementById('multiMinPoints');
+  const multiMaxPoints     = document.getElementById('multiMaxPoints');
+  const multiFieldsError   = document.getElementById('multiFieldsError');
+  const multiFieldsErrorDefaultText = multiFieldsError.textContent;
   const generateBtn        = document.getElementById('generateBtn');
   const enumerateBtn       = document.getElementById('enumerateBtn');
   const regenerateBtn      = document.getElementById('regenerateBtn');
@@ -1377,17 +1703,30 @@
   ellipseHeight.max = CUSTOM_MAX_DIM;
   triangleWidth.max = CUSTOM_MAX_DIM;
   triangleHeight.max = CUSTOM_MAX_DIM;
+  rhombusWidth.max = CUSTOM_MAX_DIM;
+  rhombusHeight.max = CUSTOM_MAX_DIM;
+  trapezoidTop.max = CUSTOM_MAX_DIM;
+  trapezoidHeight.max = CUSTOM_MAX_DIM;
+  parallelogramSide.max = CUSTOM_MAX_DIM;
+  parallelogramHeight.max = CUSTOM_MAX_DIM;
+  parallelogramOffset.min = -CUSTOM_MAX_DIM;
+  parallelogramOffset.max = CUSTOM_MAX_DIM;
 
-  // Liest die vier erweiterten Optionen aus. Ast-Generierung schließt
-  // "Punktbelastung vermeiden" zwangsläufig mit ein (ein Baum kann per
-  // Konstruktion keinen Punkt doppelt enthalten).
+  // Liest die fünf erweiterten Optionen aus. Ast-Generierung UND
+  // "Mehrere Elemente" schließen "Punktbelastung vermeiden" zwangsläufig
+  // mit ein (ein Baum kann per Konstruktion keinen Punkt doppelt
+  // enthalten; die einzelnen Linien mehrerer Elemente ebenso wenig, da
+  // sich sonst ihre Punktzahl nicht exakt der geplanten Aufteilung
+  // zuordnen ließe).
   function getConstraints() {
     const treeMode = treeModeBox.checked;
+    const multiMode = multiModeBox.checked;
     return {
       avoidCrossing: avoidCrossingBox.checked,
-      avoidPointReuse: treeMode ? true : avoidPointReuseBox.checked,
+      avoidPointReuse: (treeMode || multiMode) ? true : avoidPointReuseBox.checked,
       avoidConcentration: avoidConcentrationBox.checked,
-      treeMode
+      treeMode,
+      multiMode
     };
   }
 
@@ -1397,24 +1736,50 @@
   // Ast-Modus fälschlich wieder aktiviert, sobald irgendeine andere
   // Aktion (z. B. "Zufällige Glyphe") den Busy-Zustand zurücksetzte.
   function updateActionButtonsEnabled() {
-    const hasValidMax = currentMaxInfo.value >= 1;
-    generateBtn.disabled = !hasValidMax;
-    enumerateBtn.disabled = !hasValidMax;
+    if (multiModeBox.checked) {
+      const config = validateMultiFields();
+      const readyOk = !!config && config.total <= currentGraph.vertices.length;
+      generateBtn.disabled = !readyOk;
+      enumerateBtn.disabled = true; // "Alle Kombinationen" gibt es im Mehrere-Elemente-Modus nicht
+    } else {
+      const hasValidMax = currentMaxInfo.value >= 1;
+      generateBtn.disabled = !hasValidMax;
+      enumerateBtn.disabled = !hasValidMax;
+    }
     regenerateBtn.disabled = regenerateBtn.dataset.armed !== '1';
+  }
+
+  // Ast-Generierung und "Mehrere Elemente" schließen sich gegenseitig
+  // aus (beide implizieren bereits jeweils "Punktbelastung vermeiden"
+  // auf unterschiedliche Weise) — ist der eine Modus aktiv, wird der
+  // andere Checkbox gesperrt, statt beide gleichzeitig zuzulassen.
+  function syncModeExclusivity() {
+    const treeOn = treeModeBox.checked;
+    const multiOn = multiModeBox.checked;
+    treeModeBox.disabled = multiOn;
+    multiModeBox.disabled = treeOn;
+    const forceReuse = treeOn || multiOn;
+    avoidPointReuseBox.disabled = forceReuse;
+    if (forceReuse) avoidPointReuseBox.checked = true;
   }
 
   function setBusy(busy) {
     const controls = [generateBtn, enumerateBtn, regenerateBtn, gridSelect, stepsInput,
       customWidth, customHeight, forbiddenEnabled, forbiddenInput,
-      avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox];
+      avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
+      multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints];
     controls.forEach(el => (el.disabled = busy));
     if (!busy) {
       updateActionButtonsEnabled();
-      if (treeModeBox.checked) avoidPointReuseBox.disabled = true;
+      syncModeExclusivity();
     }
   }
 
   function refreshMaxSteps() {
+    if (multiModeBox.checked) {
+      refreshMultiReadiness();
+      return;
+    }
     statusBadge.textContent = 'Berechne Maximum…';
     generateBtn.disabled = true;
     enumerateBtn.disabled = true;
@@ -1438,6 +1803,67 @@
     }, 20);
   }
 
+  // Prüft die vier Eingabefelder des "Mehrere Elemente"-Modus rein
+  // arithmetisch (unabhängig vom aktuellen Raster): Minimum ≥ 2,
+  // Minimum ≤ Maximum ≤ Gesamtzahl, und die vom Nutzer geforderte
+  // Sanity-Check-Regel "Gesamtzahl ÷ Anzahl Elemente darf nie unter 2
+  // fallen" — zusammen mit der allgemeineren Aufteilbarkeits-Prüfung
+  // (Anzahl×Minimum ≤ Gesamtzahl ≤ Anzahl×Maximum), die diese Regel für
+  // ein beliebiges Minimum > 2 mit abdeckt.
+  function validateMultiFields() {
+    const total = Number(multiTotalPoints.value);
+    const count = Number(multiElementCount.value);
+    const min = Number(multiMinPoints.value);
+    const max = Number(multiMaxPoints.value);
+
+    const basicValid =
+      Number.isInteger(total) && total >= 2 &&
+      Number.isInteger(count) && count >= 1 &&
+      Number.isInteger(min) && min >= 2 &&
+      Number.isInteger(max) && max >= min && max <= total;
+
+    const feasible = basicValid
+      && (total / count) >= 2
+      && (count * min) <= total
+      && total <= (count * max);
+
+    const invalid = !feasible;
+    [multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints]
+      .forEach(el => el.classList.toggle('error', invalid));
+    if (invalid) multiFieldsError.textContent = multiFieldsErrorDefaultText;
+    multiFieldsError.classList.toggle('visible', invalid);
+
+    return feasible ? { total, count, min, max } : null;
+  }
+
+  // Wie refreshMaxSteps(), aber für den "Mehrere Elemente"-Modus: statt
+  // einer Maximalschrittzahl wird geprüft, ob die eingetragene
+  // Punkte-/Element-Konfiguration arithmetisch erfüllbar ist UND ob das
+  // aktuelle Raster (abzüglich verbotener Punkte) überhaupt genug
+  // nutzbare Punkte dafür hat.
+  function refreshMultiReadiness() {
+    enumerateBtn.disabled = true;
+    const config = validateMultiFields();
+    if (!config) {
+      generateBtn.disabled = true;
+      statusBadge.textContent = 'Ungültige Eingabe';
+      return;
+    }
+    const availablePoints = currentGraph.vertices.length;
+    if (config.total > availablePoints) {
+      [multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints]
+        .forEach(el => el.classList.add('error'));
+      multiFieldsError.textContent =
+        `Nicht genug nutzbare Punkte im aktuellen Raster (benötigt ${config.total}, verfügbar ${availablePoints}).`;
+      multiFieldsError.classList.add('visible');
+      generateBtn.disabled = true;
+      statusBadge.textContent = 'Nicht genug Punkte';
+      return;
+    }
+    generateBtn.disabled = false;
+    statusBadge.textContent = 'Bereit';
+  }
+
   function validateSteps() {
     const val = Number(stepsInput.value);
     const invalid = !Number.isInteger(val) || val < 1 || val > currentMaxInfo.value;
@@ -1449,9 +1875,29 @@
   stepsInput.addEventListener('input', validateSteps);
 
   function runGeneration() {
+    const constraints = getConstraints();
+
+    if (constraints.multiMode) {
+      const config = validateMultiFields();
+      if (!config) return;
+      setBusy(true);
+      statusBadge.textContent = 'Erzeuge Glyphen…';
+      setTimeout(() => {
+        const multi = generateMultiWithRetries(config, currentGraph, currentGrid, constraints);
+        if (multi) {
+          renderMulti(currentGrid, currentGraph, multi);
+          regenerateBtn.dataset.armed = '1';
+        } else {
+          renderEmpty('Für diese Kombination aus Punktzahl, Elementanzahl, Minimum und Maximum konnte keine gültige Glyphe gefunden werden. Versuche kleinere Werte oder weniger Einschränkungen.');
+          statusBadge.textContent = 'Nicht gefunden';
+        }
+        setBusy(false);
+      }, 10);
+      return;
+    }
+
     const steps = validateSteps();
     if (steps === null) return;
-    const constraints = getConstraints();
     setBusy(true);
     statusBadge.textContent = 'Erzeuge Glyphe…';
     setTimeout(() => {
@@ -1476,6 +1922,7 @@
 
   function runEnumeration() {
     const constraints = getConstraints();
+    if (constraints.multiMode) return; // "Alle Kombinationen" gibt es im Mehrere-Elemente-Modus nicht (Button ist gesperrt)
     const steps = validateSteps();
     if (steps === null) return;
 
@@ -1585,6 +2032,67 @@
     triangleWidth.classList.remove('error');
     triangleHeight.classList.remove('error');
 
+    if (gridSelect.value === 'rhombus') {
+      const width = Number(rhombusWidth.value);
+      const height = Number(rhombusHeight.value);
+      const invalid =
+        !Number.isInteger(width) || !Number.isInteger(height) ||
+        width < 1 || height < 1 ||
+        width % 2 === 0 ||
+        width > CUSTOM_MAX_DIM || height > CUSTOM_MAX_DIM;
+      rhombusWidth.classList.toggle('error', invalid);
+      rhombusHeight.classList.toggle('error', invalid);
+      rhombusGridError.classList.toggle('visible', invalid);
+      rhombusGridError.textContent = width % 2 === 0
+        ? 'Die Breite muss ungerade sein, damit die Reihen zentriert bleiben.'
+        : `Breite und Höhe müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+      if (invalid) return null;
+      return { shape: 'rhombus', width, height };
+    }
+    rhombusGridError.classList.remove('visible');
+    rhombusWidth.classList.remove('error');
+    rhombusHeight.classList.remove('error');
+
+    if (gridSelect.value === 'trapezoid') {
+      const top = Number(trapezoidTop.value);
+      const height = Number(trapezoidHeight.value);
+      const invalid =
+        !Number.isInteger(top) || !Number.isInteger(height) ||
+        top < 1 || height < 1 ||
+        top > CUSTOM_MAX_DIM || height > CUSTOM_MAX_DIM;
+      trapezoidTop.classList.toggle('error', invalid);
+      trapezoidHeight.classList.toggle('error', invalid);
+      trapezoidGridError.classList.toggle('visible', invalid);
+      trapezoidGridError.textContent = `Oberseite und Höhe müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+      if (invalid) return null;
+      return { shape: 'trapezoid', top, height };
+    }
+    trapezoidGridError.classList.remove('visible');
+    trapezoidTop.classList.remove('error');
+    trapezoidHeight.classList.remove('error');
+
+    if (gridSelect.value === 'parallelogram') {
+      const sideLength = Number(parallelogramSide.value);
+      const height = Number(parallelogramHeight.value);
+      const offset = Number(parallelogramOffset.value);
+      const invalid =
+        !Number.isInteger(sideLength) || !Number.isInteger(height) || !Number.isInteger(offset) ||
+        sideLength < 1 || height < 1 ||
+        sideLength > CUSTOM_MAX_DIM || height > CUSTOM_MAX_DIM ||
+        offset < -CUSTOM_MAX_DIM || offset > CUSTOM_MAX_DIM;
+      parallelogramSide.classList.toggle('error', invalid);
+      parallelogramHeight.classList.toggle('error', invalid);
+      parallelogramOffset.classList.toggle('error', invalid);
+      parallelogramGridError.classList.toggle('visible', invalid);
+      parallelogramGridError.textContent = `Seitenlänge und Höhe müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen, Versatz zwischen -${CUSTOM_MAX_DIM} und ${CUSTOM_MAX_DIM}.`;
+      if (invalid) return null;
+      return { shape: 'parallelogram', sideLength, height, offset };
+    }
+    parallelogramGridError.classList.remove('visible');
+    parallelogramSide.classList.remove('error');
+    parallelogramHeight.classList.remove('error');
+    parallelogramOffset.classList.remove('error');
+
     const [cols, rows] = gridSelect.value.split('x').map(Number);
     return { shape: 'rect', cols, rows };
   }
@@ -1597,6 +2105,9 @@
     if (grid.shape === 'circle') return { shape: 'circle', n: grid.n };
     if (grid.shape === 'ellipse') return { shape: 'ellipse', rx: grid.rx, ry: grid.ry };
     if (grid.shape === 'triangle') return { shape: 'triangle', width: grid.width, height: grid.height };
+    if (grid.shape === 'rhombus') return { shape: 'rhombus', width: grid.width, height: grid.height };
+    if (grid.shape === 'trapezoid') return { shape: 'trapezoid', top: grid.top, height: grid.height };
+    if (grid.shape === 'parallelogram') return { shape: 'parallelogram', sideLength: grid.sideLength, height: grid.height, offset: grid.offset };
     return { shape: 'rect', cols: grid.cols, rows: grid.rows };
   }
 
@@ -1606,6 +2117,9 @@
     if (a.shape === 'circle') return a.n === b.n;
     if (a.shape === 'ellipse') return a.rx === b.rx && a.ry === b.ry;
     if (a.shape === 'triangle') return a.width === b.width && a.height === b.height;
+    if (a.shape === 'rhombus') return a.width === b.width && a.height === b.height;
+    if (a.shape === 'trapezoid') return a.top === b.top && a.height === b.height;
+    if (a.shape === 'parallelogram') return a.sideLength === b.sideLength && a.height === b.height && a.offset === b.offset;
     return a.cols === b.cols && a.rows === b.rows;
   }
 
@@ -1645,6 +2159,12 @@
       ? buildEllipseGridDefinition(spec.rx, spec.ry)
       : spec.shape === 'triangle'
       ? buildTriangleGridDefinition(spec.width, spec.height)
+      : spec.shape === 'rhombus'
+      ? buildRhombusGridDefinition(spec.width, spec.height)
+      : spec.shape === 'trapezoid'
+      ? buildTrapezoidGridDefinition(spec.top, spec.height)
+      : spec.shape === 'parallelogram'
+      ? buildParallelogramGridDefinition(spec.sideLength, spec.height, spec.offset)
       : buildGridDefinition(spec.cols, spec.rows);
     const totalPoints = Object.keys(currentGrid.points).length;
     forbiddenRangeHint.textContent = `1–${totalPoints}`;
@@ -1734,6 +2254,9 @@
     circleGridGroup.style.display = gridSelect.value === 'circle' ? 'block' : 'none';
     ellipseGridGroup.style.display = gridSelect.value === 'ellipse' ? 'block' : 'none';
     triangleGridGroup.style.display = gridSelect.value === 'triangle' ? 'block' : 'none';
+    rhombusGridGroup.style.display = gridSelect.value === 'rhombus' ? 'block' : 'none';
+    trapezoidGridGroup.style.display = gridSelect.value === 'trapezoid' ? 'block' : 'none';
+    parallelogramGridGroup.style.display = gridSelect.value === 'parallelogram' ? 'block' : 'none';
     rebuildGridAndRefresh();
   }
 
@@ -1745,10 +2268,22 @@
   // Ast-Generierung impliziert "Punktbelastung vermeiden" (ein Baum kann
   // keinen Punkt doppelt enthalten) — die Checkbox wird entsprechend
   // zwangsweise aktiviert und gesperrt, solange Ast-Generierung läuft.
+  // Da sich Ast-Generierung und "Mehrere Elemente" gegenseitig
+  // ausschließen, wird zusätzlich die jeweils andere Checkbox gesperrt.
   function handleTreeModeChange() {
-    const on = treeModeBox.checked;
-    if (on) avoidPointReuseBox.checked = true;
-    avoidPointReuseBox.disabled = on;
+    syncModeExclusivity();
+    refreshForbiddenOnly();
+  }
+
+  // "Mehrere Elemente" blendet die Schritte-Felder aus und stattdessen
+  // die eigenen Punkte-/Element-Felder ein; wie Ast-Generierung
+  // impliziert der Modus zwangsläufig "Punktbelastung vermeiden" und
+  // schließt sich mit Ast-Generierung gegenseitig aus.
+  function handleMultiModeChange() {
+    const on = multiModeBox.checked;
+    stepsGroup.style.display = on ? 'none' : 'block';
+    multiFieldsGroup.style.display = on ? 'block' : 'none';
+    syncModeExclusivity();
     refreshForbiddenOnly();
   }
 
@@ -1774,6 +2309,20 @@
   triangleHeight.addEventListener('change', rebuildGridAndRefresh);
   triangleWidth.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
   triangleHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  rhombusWidth.addEventListener('change', rebuildGridAndRefresh);
+  rhombusHeight.addEventListener('change', rebuildGridAndRefresh);
+  rhombusWidth.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  rhombusHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  trapezoidTop.addEventListener('change', rebuildGridAndRefresh);
+  trapezoidHeight.addEventListener('change', rebuildGridAndRefresh);
+  trapezoidTop.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  trapezoidHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  parallelogramSide.addEventListener('change', rebuildGridAndRefresh);
+  parallelogramHeight.addEventListener('change', rebuildGridAndRefresh);
+  parallelogramOffset.addEventListener('change', rebuildGridAndRefresh);
+  parallelogramSide.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  parallelogramHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  parallelogramOffset.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
   forbiddenEnabled.addEventListener('change', handleForbiddenEnabledChange);
   forbiddenInput.addEventListener('change', refreshForbiddenOnly);
   forbiddenInput.addEventListener('keydown', e => { if (e.key === 'Enter') refreshForbiddenOnly(); });
@@ -1781,7 +2330,12 @@
   avoidPointReuseBox.addEventListener('change', refreshForbiddenOnly);
   avoidConcentrationBox.addEventListener('change', refreshForbiddenOnly);
   treeModeBox.addEventListener('change', handleTreeModeChange);
+  multiModeBox.addEventListener('change', handleMultiModeChange);
   stepsInput.addEventListener('keydown', e => { if (e.key === 'Enter') runGeneration(); });
+  [multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints].forEach(el => {
+    el.addEventListener('input', () => { if (multiModeBox.checked) refreshMultiReadiness(); });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') runGeneration(); });
+  });
 
   regenerateBtn.dataset.armed = '0';
   forbiddenRangeHint.textContent = `1–${Object.keys(currentGrid.points).length}`;
