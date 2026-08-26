@@ -891,42 +891,94 @@
   /* =====================================================
      MEHRERE ELEMENTE
      Statt eines einzelnen Elements entstehen `count` getrennte,
-     unverbundene Linien (einfache Pfade ohne Punktwiederholung),
-     die sich gemeinsam den Punktevorrat `total` teilen — kein
-     Punkt taucht in mehr als einem Element auf. Jedes Element
-     bekommt dabei zwischen `min` und `max` Punkten zugewiesen.
+     unverbundene Elemente, die sich gemeinsam den Punktevorrat
+     `total` teilen — kein Punkt taucht in mehr als einem Element
+     auf. Jedes Element bekommt dabei zwischen `min` und `max`
+     Punkten zugewiesen.
+
+     Kombinierbar mit Ast-Generierung: ist `constraints.treeMode`
+     zusätzlich aktiv, ist jedes einzelne Element selbst ein
+     verzweigender Ast (statt einer einfachen Linie) — die beiden
+     Modi schließen sich technisch nicht aus, da "mehrere Elemente"
+     nur regelt, WIE VIELE getrennte Teilgraphen entstehen und wie
+     sie sich den Punktevorrat teilen, während "Ast-Generierung"
+     nur regelt, WIE ein einzelner Teilgraph intern aufgebaut wird
+     (Linie vs. verzweigender Baum).
 
      Ablauf pro Versuch:
-     1. distributeSizes(...) verteilt `total` Punkte zufällig auf
-        `count` Elemente (jedes startet bei `min`, der Rest wird
-        zufällig auf Elemente mit noch freier Kapazität bis `max`
-        verteilt).
+     1. distributeSizes(...) verteilt `total` Punkte auf `count`
+        Elemente: jedes Element bekommt zunächst unabhängig eine
+        ZUFÄLLIG gewürfelte Größe irgendwo zwischen `min` und `max`
+        (nicht nur `min` plus ein paar Reste) — das sorgt für spürbare
+        Varianz zwischen den Elementen, statt dass fast alle nahe am
+        Durchschnitt landen. Die Summe dieser Würfe trifft `total`
+        i. d. R. nicht exakt; die Differenz wird danach Punkt für Punkt
+        auf zufällig gewählte Elemente verteilt (unter Einhaltung von
+        `min`/`max`), bis die Gesamtzahl exakt erreicht ist — das ist
+        die abschließende Prüfung, dass wirklich alle Punkte verteilt
+        wurden. Ist die Checkbox "Möglichst gleichmäßige Verteilung"
+        aktiv, wird stattdessen distributeSizesBalanced(...) verwendet.
      2. Für jede Elementgröße wird — in zufälliger Reihenfolge —
-        ein einfacher Pfad exakt dieser Punktzahl gesucht, wobei
-        bereits von früheren Elementen belegte Punkte (`globalUsed`)
-        komplett als Kandidaten ausscheiden (kein Punkt wird
-        zwischen Elementen geteilt).
+        ein einfacher Pfad ODER ein Baum (je nach Ast-Generierung)
+        exakt dieser Punktzahl gesucht, wobei bereits von früheren
+        Elementen belegte Punkte (`globalUsed`) komplett als
+        Kandidaten ausscheiden (kein Punkt wird zwischen Elementen
+        geteilt).
 
      Schlägt ein Element fehl (z. B. weil die verbleibenden freien
-     Punkte keinen zusammenhängenden Pfad dieser Länge mehr
+     Punkte keinen zusammenhängenden Teilgraphen dieser Größe mehr
      hergeben), wird der gesamte Versuch verworfen und neu
      gestartet (MULTI_RETRIES) — mit frischer Größenverteilung und
      frischer Zufallsreihenfolge.
      ===================================================== */
-  function distributeSizes(total, count, min, max) {
+  function distributeSizes(total, count, min, max, balanced) {
     if (count * min > total || total > count * max) return null;
-    const sizes = new Array(count).fill(min);
-    const capacity = new Array(count).fill(max - min);
-    let remaining = total - count * min;
-    while (remaining > 0) {
-      const candidates = [];
-      for (let i = 0; i < count; i++) if (capacity[i] > 0) candidates.push(i);
-      if (candidates.length === 0) return null; // sollte nach obigem Check nicht vorkommen
-      const idx = candidates[Math.floor(Math.random() * candidates.length)];
-      sizes[idx]++;
-      capacity[idx]--;
-      remaining--;
+    return balanced
+      ? distributeSizesBalanced(total, count, min, max)
+      : distributeSizesRandom(total, count, min, max);
+  }
+
+  // Würfelt für jedes Element unabhängig eine Größe zwischen `min` und
+  // `max` (Gleichverteilung über die volle Spanne — das ist der
+  // eigentliche Grund für Varianz, im Gegensatz zu einem Start bei
+  // `min` für alle Elemente). Die Summe der Würfe weicht von `total`
+  // i. d. R. ab; die Differenz wird anschließend Punkt für Punkt auf
+  // zufällig gewählte, noch nicht ausgeschöpfte Elemente verteilt
+  // (aufstocken bei zu wenig, kürzen bei zu viel), bis exakt `total`
+  // erreicht ist. Durch `count*min<=total<=count*max` (bereits oben
+  // geprüft) ist dieser letzte Schritt immer lösbar — im äußersten
+  // Fall bei "alle auf min" bzw. "alle auf max".
+  function distributeSizesRandom(total, count, min, max) {
+    const sizes = new Array(count);
+    for (let i = 0; i < count; i++) {
+      sizes[i] = min + Math.floor(Math.random() * (max - min + 1));
     }
+    let diff = total - sizes.reduce((sum, s) => sum + s, 0);
+    while (diff !== 0) {
+      const candidates = [];
+      for (let i = 0; i < count; i++) {
+        if (diff > 0 && sizes[i] < max) candidates.push(i);
+        else if (diff < 0 && sizes[i] > min) candidates.push(i);
+      }
+      if (candidates.length === 0) return null; // kann bei eingehaltener Vorbedingung nicht auftreten
+      const idx = candidates[Math.floor(Math.random() * candidates.length)];
+      if (diff > 0) { sizes[idx]++; diff--; } else { sizes[idx]--; diff++; }
+    }
+    return sizes;
+  }
+
+  // Verteilt `total` möglichst gleichmäßig auf `count` Elemente: alle
+  // bekommen ⌊total÷count⌋, der Rest (`total mod count`) wird einzeln
+  // (je +1) auf eine zufällig ausgeloste Teilmenge der Elemente verteilt
+  // — bewusst kein deterministisches "die ersten N Elemente", damit bei
+  // wiederholter Generierung nicht immer dieselben Elemente die
+  // "Extra-Punkte" bekommen.
+  function distributeSizesBalanced(total, count, min, max) {
+    const base = Math.floor(total / count);
+    const remainder = total - base * count;
+    const sizes = new Array(count).fill(base);
+    const order = shuffle(Array.from({ length: count }, (_, i) => i));
+    for (let i = 0; i < remainder; i++) sizes[order[i]]++;
     return sizes;
   }
 
@@ -973,17 +1025,71 @@
     return null;
   }
 
+  // Sucht einen verzweigenden Baum (kein Punkt kommt mehrfach vor,
+  // Wachstum an einem BELIEBIGEN bereits im Baum enthaltenen Punkt)
+  // mit genau `targetPoints` Punkten, dessen Punkte allesamt außerhalb
+  // von `globalUsed` liegen. Baugleich zu generateTree, aber mit
+  // zusätzlichem Ausschluss-Filter und eigenem Punktebudget statt der
+  // globalen GENERATION_NODE_BUDGET-Konstante.
+  function generateElementTree(targetPoints, graph, grid, constraints, globalUsed, nodeBudget) {
+    const targetEdges = targetPoints - 1;
+    let budget = nodeBudget;
+    const usedEdges = new Array(graph.edges.length).fill(false);
+
+    function tryGrow(remaining, usedVertices, usedSegments, edges) {
+      budget--;
+      if (budget <= 0) return false;
+      if (remaining === 0) return true;
+      const frontier = shuffle(Array.from(usedVertices));
+      for (const u of frontier) {
+        const rawOptions = graph.byVertex[u].filter(o => !usedEdges[o.edgeId] && !usedVertices.has(o.to) && !globalUsed.has(o.to));
+        const options = shuffle(rawOptions).filter(opt => passesConstraints(u, opt, grid, constraints, usedVertices, usedSegments));
+        for (const opt of options) {
+          usedEdges[opt.edgeId] = true;
+          usedVertices.add(opt.to);
+          usedSegments.push([grid.points[u], grid.points[opt.to]]);
+          edges.push({ from: u, to: opt.to });
+          if (tryGrow(remaining - 1, usedVertices, usedSegments, edges)) return true;
+          edges.pop();
+          usedSegments.pop();
+          usedVertices.delete(opt.to);
+          usedEdges[opt.edgeId] = false;
+          if (budget <= 0) return false;
+        }
+      }
+      return false;
+    }
+
+    const starts = shuffle(graph.vertices.filter(v => !globalUsed.has(v)));
+    for (const start of starts) {
+      usedEdges.fill(false);
+      const usedVertices = new Set([start]);
+      const edges = [];
+      if (tryGrow(targetEdges, usedVertices, [], edges)) return { root: start, edges, vertices: Array.from(usedVertices) };
+      if (budget <= 0) break;
+    }
+    return null;
+  }
+
   function generateMultiElements(config, graph, grid, constraints) {
-    const sizes = distributeSizes(config.total, config.count, config.min, config.max);
+    const sizes = distributeSizes(config.total, config.count, config.min, config.max, constraints.multiBalanced);
     if (!sizes) return null;
     const order = shuffle(sizes.slice());
     const globalUsed = new Set();
     const elements = [];
     for (const size of order) {
-      const path = generateElementPath(size, graph, grid, constraints, globalUsed, MULTI_NODE_BUDGET_PER_ELEMENT);
-      if (!path) return null;
-      path.forEach(v => globalUsed.add(v));
-      elements.push(path);
+      let element;
+      if (constraints.treeMode) {
+        const tree = generateElementTree(size, graph, grid, constraints, globalUsed, MULTI_NODE_BUDGET_PER_ELEMENT);
+        if (!tree) return null;
+        element = { root: tree.root, edges: tree.edges, points: tree.vertices };
+      } else {
+        const path = generateElementPath(size, graph, grid, constraints, globalUsed, MULTI_NODE_BUDGET_PER_ELEMENT);
+        if (!path) return null;
+        element = { root: path[0], edges: pathToEdges(path), points: path };
+      }
+      element.points.forEach(v => globalUsed.add(v));
+      elements.push(element);
     }
     return { elements };
   }
@@ -1211,7 +1317,11 @@
   const outputCanvas   = document.getElementById('outputCanvas');
   const sequenceFooter = document.getElementById('sequenceFooter');
   const sequenceChain  = document.getElementById('sequenceChain');
-  const statusBadge    = document.getElementById('statusBadge');
+  // Das Status-Pillen-Element neben dem Titel wurde entfernt. Die vielen
+  // Stellen im Code, die weiterhin einen Statustext zuweisen (Fortschritt,
+  // Fehler, "Bereit" etc.), bleiben unverändert bestehen — sie schreiben
+  // einfach ins Leere, statt jede einzelne Zuweisung entfernen zu müssen.
+  const statusBadge    = { textContent: '' };
   const outputTitle    = document.getElementById('outputTitle');
 
   function dist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
@@ -1425,30 +1535,35 @@
   }
 
   // Rendering für den "Mehrere Elemente"-Modus: mehrere getrennte,
-  // unverbundene Pfade werden als eine gemeinsame Kantenliste gezeichnet
-  // (jedes Element bekommt einen eigenen Startring) und in der
-  // Punktreihenfolge-Leiste nach Element gruppiert aufgelistet.
-  function renderMulti(grid, graph, multi) {
+  // unverbundene Teilgraphen werden als eine gemeinsame Kantenliste
+  // gezeichnet (jedes Element bekommt einen eigenen Startring) und in
+  // der Punktreihenfolge-Leiste nach Element gruppiert aufgelistet.
+  // Ist Ast-Generierung zusätzlich aktiv, ist jedes Element selbst ein
+  // Baum — die Sequenz wird dann wie im reinen Ast-Modus als
+  // Kantenliste (von→nach) statt als durchgehende Punktkette angezeigt.
+  function renderMulti(grid, graph, multi, isTreeElements) {
     invalidateEnumSession();
     outputCanvas.classList.remove('combos-mode');
     outputCanvas.classList.add('single-mode');
     const elements = multi.elements;
-    const edges = elements.reduce((acc, path) => acc.concat(pathToEdges(path)), []);
-    const rootVertices = elements.map(p => p[0]);
+    const edges = elements.reduce((acc, el) => acc.concat(el.edges), []);
+    const rootVertices = elements.map(el => el.root);
 
     outputCanvas.innerHTML = glyphSVG(grid, graph, edges, {
       animate: true, showStartRing: true, mainClass: 'glyph-main', rootVertices
     });
 
-    sequenceChain.innerHTML = elements.map((path, i) => {
-      const chain = path.map(v => `<span class="badge">${v}</span>`).join('<span class="arrow">→</span>');
+    sequenceChain.innerHTML = elements.map((el, i) => {
+      const chain = isTreeElements
+        ? el.edges.map(e => `<span class="badge">${e.from}→${e.to}</span>`).join('')
+        : el.points.map(v => `<span class="badge">${v}</span>`).join('<span class="arrow">→</span>');
       return `<div style="width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1);margin-bottom:var(--space-1)">
         <span class="badge badge-orange">Element ${i + 1}</span>${chain}
       </div>`;
     }).join('');
     sequenceFooter.style.display = 'block';
-    outputTitle.textContent = 'Mehrere-Elemente-Glyphe';
-    const totalPoints = elements.reduce((sum, p) => sum + p.length, 0);
+    outputTitle.textContent = isTreeElements ? 'Mehrere Ast-Elemente' : 'Mehrere-Elemente-Glyphe';
+    const totalPoints = elements.reduce((sum, el) => sum + el.points.length, 0);
     statusBadge.textContent = `${elements.length} Elemente · ${totalPoints} Punkte`;
 
     currentSingleResult = {
@@ -1689,6 +1804,7 @@
   const multiMinPoints     = document.getElementById('multiMinPoints');
   const multiMaxPoints     = document.getElementById('multiMaxPoints');
   const multiFieldsError   = document.getElementById('multiFieldsError');
+  const multiBalancedBox   = document.getElementById('multiBalanced');
   const multiFieldsErrorDefaultText = multiFieldsError.textContent;
   const generateBtn        = document.getElementById('generateBtn');
   const enumerateBtn       = document.getElementById('enumerateBtn');
@@ -1726,7 +1842,8 @@
       avoidPointReuse: (treeMode || multiMode) ? true : avoidPointReuseBox.checked,
       avoidConcentration: avoidConcentrationBox.checked,
       treeMode,
-      multiMode
+      multiMode,
+      multiBalanced: multiBalancedBox.checked
     };
   }
 
@@ -1749,16 +1866,15 @@
     regenerateBtn.disabled = regenerateBtn.dataset.armed !== '1';
   }
 
-  // Ast-Generierung und "Mehrere Elemente" schließen sich gegenseitig
-  // aus (beide implizieren bereits jeweils "Punktbelastung vermeiden"
-  // auf unterschiedliche Weise) — ist der eine Modus aktiv, wird der
-  // andere Checkbox gesperrt, statt beide gleichzeitig zuzulassen.
-  function syncModeExclusivity() {
-    const treeOn = treeModeBox.checked;
-    const multiOn = multiModeBox.checked;
-    treeModeBox.disabled = multiOn;
-    multiModeBox.disabled = treeOn;
-    const forceReuse = treeOn || multiOn;
+  // Ast-Generierung und "Mehrere Elemente" implizieren beide
+  // "Punktbelastung vermeiden" (ein Baum bzw. eine einzelne Linie kann
+  // per Konstruktion keinen Punkt doppelt enthalten) — die Checkbox
+  // wird entsprechend zwangsweise aktiviert und gesperrt, solange
+  // mindestens einer der beiden Modi läuft. Die Modi selbst schließen
+  // sich NICHT gegenseitig aus: sind beide aktiv, ist jedes Element des
+  // Mehrere-Elemente-Modus selbst ein Baum statt einer einfachen Linie.
+  function syncAdvancedOptionState() {
+    const forceReuse = treeModeBox.checked || multiModeBox.checked;
     avoidPointReuseBox.disabled = forceReuse;
     if (forceReuse) avoidPointReuseBox.checked = true;
   }
@@ -1767,25 +1883,24 @@
     const controls = [generateBtn, enumerateBtn, regenerateBtn, gridSelect, stepsInput,
       customWidth, customHeight, forbiddenEnabled, forbiddenInput,
       avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
-      multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints];
+      multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints, multiBalancedBox];
     controls.forEach(el => (el.disabled = busy));
     if (!busy) {
       updateActionButtonsEnabled();
-      syncModeExclusivity();
+      syncAdvancedOptionState();
     }
   }
 
   function refreshMaxSteps() {
-    if (multiModeBox.checked) {
-      refreshMultiReadiness();
-      return;
-    }
     statusBadge.textContent = 'Berechne Maximum…';
     generateBtn.disabled = true;
     enumerateBtn.disabled = true;
 
     // Kurz verzögern, damit der Status sichtbar wird, bevor die
-    // (bei größeren Rastern spürbare) Berechnung synchron läuft.
+    // (bei größeren Rastern spürbare) Berechnung synchron läuft. Läuft
+    // IMMER, auch im Mehrere-Elemente-Modus: die "Gesamtzahl Punkte"
+    // leitet ihre Obergrenze direkt von diesem Wert ab (siehe
+    // updateMultiFieldBounds), daher muss er auch dort aktuell sein.
     setTimeout(() => {
       const constraints = getConstraints();
       currentMaxInfo = computeMaxSteps(currentGraph, currentGrid, constraints);
@@ -1798,9 +1913,150 @@
         stepsInput.value = currentMaxInfo.value;
       }
       validateSteps();
-      statusBadge.textContent = currentMaxInfo.value < 1 ? 'Kein Pfad möglich' : 'Bereit';
+
+      updateMultiFieldBounds();
+      if (multiModeBox.checked) {
+        refreshMultiReadiness();
+      } else {
+        statusBadge.textContent = currentMaxInfo.value < 1 ? 'Kein Pfad möglich' : 'Bereit';
+      }
       updateActionButtonsEnabled();
     }, 20);
+  }
+
+  // Berechnet für die vier Mehrere-Elemente-Felder dynamisch min/max
+  // (HTML-Attribute, wirken u. a. auf die Spinner-Pfeile). Die vier
+  // Felder hängen kaskadenartig voneinander ab:
+  //   Gesamtzahl  → hängt nur vom Raster/den Checkboxen ab
+  //                 (identische Berechnung wie "Maximal möglich" bei
+  //                 Einzelglyphen, siehe currentMaxInfo).
+  //   Anzahl      → hängt von der Gesamtzahl ab.
+  //   Min.        → hängt von Gesamtzahl UND Anzahl ab (⌊Gesamtzahl÷Anzahl⌋
+  //                 — mehr darf der GARANTIERTE Mindestwert pro Element
+  //                 nicht sein, sonst würden schon `Anzahl` Elemente an
+  //                 diesem Minimum allein die Gesamtzahl überschreiten).
+  //   Max.        → hängt von Gesamtzahl, Anzahl UND dem (bereits
+  //                 aufgelösten) Min. ab: Gesamtzahl−(Anzahl−1)×Min. —
+  //                 so viele Punkte könnte EIN Element theoretisch
+  //                 bekommen, wenn alle übrigen Elemente nur ihr
+  //                 Minimum erhalten. Bewusst NICHT ⌊Gesamtzahl÷Anzahl⌋
+  //                 (der Durchschnitt): das würde bei glatt teilbaren
+  //                 Werten (z. B. 24 Punkte auf 3 Elemente → 8) jede
+  //                 Varianz von vornherein unmöglich machen, da dann
+  //                 ausnahmslos JEDES Element exakt beim Durchschnitt
+  //                 landen müsste.
+  // Wird in dieser Reihenfolge ausgewertet, damit sich eine Änderung an
+  // einem Feld korrekt auf alle davon abhängigen Felder fortpflanzt —
+  // unabhängig davon, welches Feld zuletzt bearbeitet wurde.
+  //
+  // Liest die aktuellen (ggf. gerade erst getippten, noch nicht
+  // bestätigten) Werte nur lesend — überschreibt sie NICHT. Dadurch
+  // kann diese leichte Variante bei jedem Tastenanschlag laufen (live
+  // sichtbare Spinner-Grenzen), ohne den Nutzer beim Tippen zu stören.
+  // Endgültig durchgesetzt (Wert in den Bereich geklemmt) wird erst
+  // durch clampMultiFieldValues() — siehe dort.
+  function updateMultiFieldBoundAttributes() {
+    const totalMax = Math.max(2, currentMaxInfo.value);
+    multiTotalPoints.min = 2;
+    multiTotalPoints.max = totalMax;
+    const total = Number(multiTotalPoints.value) || totalMax;
+
+    const countMax = Math.max(1, Math.floor(total / 2));
+    multiElementCount.min = 1;
+    multiElementCount.max = countMax;
+    const count = Number(multiElementCount.value) || countMax;
+
+    const minCeil = Math.max(2, Math.floor(total / count));
+    multiMinPoints.min = 2;
+    multiMinPoints.max = minCeil;
+    const min = Number(multiMinPoints.value) || 2;
+
+    const maxCeil = Math.max(2, total - (count - 1) * Math.min(min, minCeil));
+    multiMaxPoints.min = 2;
+    multiMaxPoints.max = maxCeil;
+  }
+
+  // Klemmt `el` hart auf [min, max]. Zusätzlich: war der Wert VORHER
+  // exakt an der (alten) Obergrenze festgeklemmt, "folgt" er der neuen
+  // Obergrenze automatisch mit — nach oben wie nach unten. Das löst das
+  // Problem, dass Felder nach einem Wechsel zu einem kleineren Raster
+  // dauerhaft klein "hängen bleiben", selbst wenn man danach wieder ein
+  // größeres Raster wählt: ohne dieses Nachziehen würde z. B.
+  // "Gesamtzahl Punkte" nach einem Ausflug auf ein 3×3-Raster für immer
+  // bei 4 verharren, obwohl ein 5×5-Raster längst viel mehr zuließe.
+  // Ein bewusst tiefer eingestellter Wert (nicht an der Grenze) bleibt
+  // dagegen unangetastet, solange er weiterhin gültig ist.
+  function clampFieldToBounds(el, min, max) {
+    const prevMax = el.max === '' ? NaN : Number(el.max);
+    const wasPinnedToMax = el.value !== '' && Number(el.value) === prevMax;
+    el.min = min;
+    el.max = max;
+    let val = Number(el.value);
+    if (!el.value || !Number.isInteger(val) || wasPinnedToMax || val > max) val = max;
+    else if (val < min) val = min;
+    el.value = val;
+  }
+
+  // Repariert eine (nach dem reinen Grenzen-Klemmen) ggf. immer noch
+  // NICHT gemeinsam erfüllbare Kombination automatisch, statt den
+  // Nutzer nur mit einer Fehlermeldung stehen zu lassen ("bei nicht
+  // durchführbaren Parametern sollen diese auf das nächstmögliche
+  // gesetzt werden"). Das kann trotz der Einzelfeld-Grenzen weiterhin
+  // vorkommen, z. B. wenn sich die Gesamtzahl nicht restlos durch die
+  // Anzahl Elemente teilen lässt: Min. und Max. sind beide auf
+  // ⌊Gesamtzahl ÷ Anzahl⌋ gedeckelt, aber genau dieser Wert kann als
+  // Maximum manchmal zu klein sein, um die Gesamtzahl zu erreichen
+  // (z. B. 10 Punkte auf 3 Elemente: ⌊10÷3⌋=3, aber 3×3=9 < 10). In so
+  // einem Fall wird das Maximum minimal über die reguläre Deckelung
+  // hinaus angehoben (auf ⌈Gesamtzahl ÷ Anzahl⌉) — der kleinstmögliche
+  // Wert, der die Kombination wieder durchführbar macht. Ebenso wird
+  // eine (durch unabhängige Änderungen an anderen Feldern entstandene)
+  // Min. > Max.-Situation aufgelöst.
+  function ensureMultiFieldsFeasible() {
+    const total = Number(multiTotalPoints.value);
+    const count = Number(multiElementCount.value);
+    let min = Number(multiMinPoints.value);
+    let max = Number(multiMaxPoints.value);
+
+    if (min > max) max = min;
+    if (count * max < total) max = Math.ceil(total / count);
+    if (count * min > total) min = Math.max(2, Math.floor(total / count));
+    min = Math.max(2, min);
+    max = Math.max(2, max);
+    if (min > max) max = min;
+
+    multiMinPoints.value = min;
+    multiMaxPoints.value = max;
+    // Die tatsächlich erreichbare Grenze kann durch diese Korrektur über
+    // die zuvor berechnete "einfache" Deckelung hinausgehen — Attribut
+    // nachziehen, damit das Feld nicht als "außerhalb des erlaubten
+    // Bereichs" erscheint.
+    if (min > Number(multiMinPoints.max)) multiMinPoints.max = min;
+    if (max > Number(multiMaxPoints.max)) multiMaxPoints.max = max;
+  }
+
+  // Wie updateMultiFieldBoundAttributes(), klemmt aber zusätzlich jeden
+  // aktuellen Wert hart auf den neu berechneten Bereich, falls er (z. B.
+  // nach Änderung eines abhängigen Feldes, oder nach einer Raster-/
+  // Checkbox-Änderung) jetzt außerhalb liegt. Wird bewusst NICHT bei
+  // jedem Tastenanschlag aufgerufen (das würde den Nutzer beim Tippen
+  // ständig unterbrechen), sondern nur bei strukturellen Änderungen
+  // (refreshMaxSteps) und beim Verlassen eines Feldes ('change').
+  function updateMultiFieldBounds() {
+    clampFieldToBounds(multiTotalPoints, 2, Math.max(2, currentMaxInfo.value));
+    const total = Number(multiTotalPoints.value);
+
+    clampFieldToBounds(multiElementCount, 1, Math.max(1, Math.floor(total / 2)));
+    const count = Number(multiElementCount.value);
+
+    const minCeil = Math.max(2, Math.floor(total / count));
+    clampFieldToBounds(multiMinPoints, 2, minCeil);
+    const min = Number(multiMinPoints.value);
+
+    const maxCeil = Math.max(2, total - (count - 1) * min);
+    clampFieldToBounds(multiMaxPoints, 2, maxCeil);
+
+    ensureMultiFieldsFeasible();
   }
 
   // Prüft die vier Eingabefelder des "Mehrere Elemente"-Modus rein
@@ -1809,7 +2065,10 @@
   // Sanity-Check-Regel "Gesamtzahl ÷ Anzahl Elemente darf nie unter 2
   // fallen" — zusammen mit der allgemeineren Aufteilbarkeits-Prüfung
   // (Anzahl×Minimum ≤ Gesamtzahl ≤ Anzahl×Maximum), die diese Regel für
-  // ein beliebiges Minimum > 2 mit abdeckt.
+  // ein beliebiges Minimum > 2 mit abdeckt. Dank updateMultiFieldBounds()
+  // sollte diese Prüfung durch die Feldgrenzen inzwischen praktisch immer
+  // erfüllbar sein — sie bleibt trotzdem als zweite, unabhängige
+  // Absicherung bestehen (z. B. falls ein Feld leer gelassen wird).
   function validateMultiFields() {
     const total = Number(multiTotalPoints.value);
     const count = Number(multiElementCount.value);
@@ -1885,7 +2144,7 @@
       setTimeout(() => {
         const multi = generateMultiWithRetries(config, currentGraph, currentGrid, constraints);
         if (multi) {
-          renderMulti(currentGrid, currentGraph, multi);
+          renderMulti(currentGrid, currentGraph, multi, constraints.treeMode);
           regenerateBtn.dataset.armed = '1';
         } else {
           renderEmpty('Für diese Kombination aus Punktzahl, Elementanzahl, Minimum und Maximum konnte keine gültige Glyphe gefunden werden. Versuche kleinere Werte oder weniger Einschränkungen.');
@@ -2268,22 +2527,25 @@
   // Ast-Generierung impliziert "Punktbelastung vermeiden" (ein Baum kann
   // keinen Punkt doppelt enthalten) — die Checkbox wird entsprechend
   // zwangsweise aktiviert und gesperrt, solange Ast-Generierung läuft.
-  // Da sich Ast-Generierung und "Mehrere Elemente" gegenseitig
-  // ausschließen, wird zusätzlich die jeweils andere Checkbox gesperrt.
+  // Ast-Generierung und "Mehrere Elemente" lassen sich kombinieren: ist
+  // zusätzlich "Mehrere Elemente" aktiv, wird dadurch jedes einzelne
+  // Element selbst zu einem Baum statt einer einfachen Linie.
   function handleTreeModeChange() {
-    syncModeExclusivity();
+    syncAdvancedOptionState();
     refreshForbiddenOnly();
   }
 
   // "Mehrere Elemente" blendet die Schritte-Felder aus und stattdessen
   // die eigenen Punkte-/Element-Felder ein; wie Ast-Generierung
-  // impliziert der Modus zwangsläufig "Punktbelastung vermeiden" und
-  // schließt sich mit Ast-Generierung gegenseitig aus.
+  // impliziert der Modus zwangsläufig "Punktbelastung vermeiden". Ist
+  // Ast-Generierung zusätzlich aktiv, wird jedes Element ein Baum statt
+  // einer einfachen Linie — die Größenfelder (Punktzahl je Element)
+  // gelten unverändert für beide Varianten.
   function handleMultiModeChange() {
     const on = multiModeBox.checked;
     stepsGroup.style.display = on ? 'none' : 'block';
     multiFieldsGroup.style.display = on ? 'block' : 'none';
-    syncModeExclusivity();
+    syncAdvancedOptionState();
     refreshForbiddenOnly();
   }
 
@@ -2333,11 +2595,21 @@
   multiModeBox.addEventListener('change', handleMultiModeChange);
   stepsInput.addEventListener('keydown', e => { if (e.key === 'Enter') runGeneration(); });
   [multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints].forEach(el => {
-    el.addEventListener('input', () => { if (multiModeBox.checked) refreshMultiReadiness(); });
+    el.addEventListener('input', () => {
+      updateMultiFieldBoundAttributes();
+      if (multiModeBox.checked) refreshMultiReadiness();
+    });
+    el.addEventListener('change', () => {
+      updateMultiFieldBounds();
+      if (multiModeBox.checked) refreshMultiReadiness();
+    });
     el.addEventListener('keydown', e => { if (e.key === 'Enter') runGeneration(); });
   });
 
   regenerateBtn.dataset.armed = '0';
-  forbiddenRangeHint.textContent = `1–${Object.keys(currentGrid.points).length}`;
-  refreshMaxSteps();
+  // Synchronisiert einmalig die sichtbare Feldgruppe mit der tatsächlich
+  // ausgewählten Raster-Option (jetzt standardmäßig "Rechteck") und stößt
+  // darüber den ersten Rebuild + refreshMaxSteps() an — robuster als eine
+  // Annahme über die Standardauswahl fest zu verdrahten.
+  handleGridSelectChange();
 })();

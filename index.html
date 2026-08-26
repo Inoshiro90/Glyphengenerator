@@ -1,305 +1,369 @@
 <!DOCTYPE html>
 <html lang="de" data-theme="light">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Glyphengenerator — Warm Design System</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glyphengenerator — Warm Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <div class="page-header">
-    <div>
-      <h1>Glyphengenerator</h1>
-      <p>Zufällig verbundene Punkte formen einzigartige Glyphen — jede Strecke wird dabei nur einmal genutzt.</p>
+    <div class="page-header">
+      <div>
+        <h1>Glyphengenerator</h1>
+        <p>Zufällig verbundene Punkte formen einzigartige Glyphen — jede Strecke wird dabei nur einmal genutzt.</p>
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="Zu Dark Mode wechseln">
+        <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41">
+          </path>
+        </svg>
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" style="display:none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
     </div>
-    <button class="icon-btn" id="themeToggle" aria-label="Zu Dark Mode wechseln">
-      <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
-      <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-    </button>
+
+    <div class="layout">
+
+      <!-- CONTROL PANEL -->
+      <div class="card">
+        <div class="card-body">
+          <h2 class="card-title">Einstellungen</h2>
+          <p class="card-subtitle">Raster und Verbindungsschritte festlegen.</p>
+
+          <div class="form-group">
+            <label class="form-label" for="gridSelect">Raster</label>
+            <select class="form-select" id="gridSelect">
+              <option value="custom">Rechteck…</option>
+              <option value="hexagon">Hexagon…</option>
+              <option value="circle">Kreis…</option>
+              <option value="ellipse">Ellipse…</option>
+              <option value="triangle">Dreieck…</option>
+              <option value="rhombus">Raute…</option>
+              <option value="trapezoid">Trapez…</option>
+              <option value="parallelogram">Parallelogramm…</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="customGridGroup">
+            <label class="form-label">Eigene Rastergröße</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="customWidth">Breite</label>
+                <input class="form-input" type="number" id="customWidth" min="2" value="3">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="customHeight">Höhe</label>
+                <input class="form-input" type="number" id="customHeight" min="2" value="3">
+              </div>
+            </div>
+            <p class="form-hint">Mindestens 2 × 2. Beispiele: 2×3, 4×6, 7×3.</p>
+            <p class="form-error" id="customGridError">Breite und Höhe müssen mindestens 2 betragen.</p>
+          </div>
+
+          <div class="form-group" id="hexGridGroup" style="display:none">
+            <label class="form-label">Hexagon-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="hexDiag">Schrägseiten</label>
+                <input class="form-input" type="number" id="hexDiag" min="1" value="3">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="hexVert">Vertikalseiten</label>
+                <input class="form-input" type="number" id="hexVert" min="1" value="3">
+              </div>
+            </div>
+            <p class="form-hint">Schrägseiten bestimmen, wie stark sich die Reihen oben/unten verjüngen; Vertikalseiten
+              die Anzahl der Reihen auf voller Breite. Beispiel 3×3: Reihenbreiten 1, 3, 5, 5, 5, 3, 1.</p>
+            <p class="form-error" id="hexGridError">Schrägseiten und Vertikalseiten müssen mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="circleGridGroup" style="display:none">
+            <label class="form-label" for="circleRings">Kreis-Ringe</label>
+            <input class="form-input" type="number" id="circleRings" min="1" value="3">
+            <p class="form-hint">Ring k (außer Zentrum) hat immer 4×k Punkte (Ring1=4, Ring2=8, Ring3=12, …), verteilt
+              im Uhrzeigersinn ab 12 Uhr. Mit 3 Ringen entstehen 25 Punkte.</p>
+            <p class="form-error" id="circleGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="ellipseGridGroup" style="display:none">
+            <label class="form-label">Ellipsen-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="ellipseWidth">Breite (Ringe)</label>
+                <input class="form-input" type="number" id="ellipseWidth" min="1" value="2">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="ellipseHeight">Höhe (Ringe)</label>
+                <input class="form-input" type="number" id="ellipseHeight" min="1" value="4">
+              </div>
+            </div>
+            <p class="form-hint">Wie beim Kreis, aber mit unabhängiger horizontaler und vertikaler Streckung. Die
+              größere der beiden Zahlen bestimmt die Ringzahl/Punktdichte; die kleinere staucht diese Achse
+              entsprechend. Bei gleichen Werten entsteht ein Kreis.</p>
+            <p class="form-error" id="ellipseGridError">Breite und Höhe müssen mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="triangleGridGroup" style="display:none">
+            <label class="form-label">Dreieck-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="triangleWidth">Breite (unten)</label>
+                <input class="form-input" type="number" id="triangleWidth" min="1" step="2" value="5">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="triangleHeight">Höhe</label>
+                <input class="form-input" type="number" id="triangleHeight" min="1" value="3">
+              </div>
+            </div>
+            <p class="form-hint">Breite muss ungerade sein, damit jede Zwischenreihe exakt unter der Spitze zentriert
+              bleibt. Standardverhältnis Breite=2×Höhe−1 (z. B. 5×3) lässt jede Reihe um genau 2 Punkte wachsen; andere
+              Kombinationen werden gleichmäßig dazwischen interpoliert.</p>
+            <p class="form-error" id="triangleGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.
+            </p>
+          </div>
+
+          <div class="form-group" id="rhombusGridGroup" style="display:none">
+            <label class="form-label">Rauten-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="rhombusWidth">Breite (Mitte)</label>
+                <input class="form-input" type="number" id="rhombusWidth" min="1" step="2" value="5">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="rhombusHeight">Höhe</label>
+                <input class="form-input" type="number" id="rhombusHeight" min="1" value="5">
+              </div>
+            </div>
+            <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis zur
+              Mitte auf „Breite" an und nimmt danach spiegelbildlich wieder ab (z. B. 5×5 → Reihenbreiten 1,3,5,3,1).
+            </p>
+            <p class="form-error" id="rhombusGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.
+            </p>
+          </div>
+
+          <div class="form-group" id="trapezoidGridGroup" style="display:none">
+            <label class="form-label">Trapez-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="trapezoidTop">Oberseite</label>
+                <input class="form-input" type="number" id="trapezoidTop" min="1" value="3">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="trapezoidHeight">Höhe</label>
+                <input class="form-input" type="number" id="trapezoidHeight" min="1" value="3">
+              </div>
+            </div>
+            <p class="form-hint">Jede Reihe wächst von der Oberseite ausgehend um genau 2 Punkte. Unterseite = Oberseite
+              + 2×(Höhe−1) — automatisch berechnet, immer zentriert.</p>
+            <p class="form-error" id="trapezoidGridError">Oberseite und Höhe müssen mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="parallelogramGridGroup" style="display:none">
+            <label class="form-label">Parallelogramm-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="parallelogramSide">Seitenlänge</label>
+                <input class="form-input" type="number" id="parallelogramSide" min="1" value="4">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="parallelogramHeight">Höhe</label>
+                <input class="form-input" type="number" id="parallelogramHeight" min="1" value="3">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:var(--space-3);margin-bottom:0">
+              <label class="form-hint" for="parallelogramOffset">Versatz pro Reihe</label>
+              <input class="form-input" type="number" id="parallelogramOffset" value="-1">
+            </div>
+            <p class="form-hint">Jede Reihe hat dieselbe Seitenlänge, verschiebt sich aber kumulativ um „Versatz"
+              Spalten gegenüber der vorherigen Reihe. Negativ = nach links, positiv = nach rechts. Beispiel: Versatz −2
+              verschiebt Reihe 2 um 2, Reihe 3 um 4 Punkte nach links.</p>
+            <p class="form-error" id="parallelogramGridError">Seitenlänge und Höhe müssen mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-row" for="forbiddenEnabled">
+              <input type="checkbox" id="forbiddenEnabled">
+              <span class="form-label" style="margin:0">Verbotene Punkte verwenden</span>
+            </label>
+            <div id="forbiddenFieldWrap" style="display:none">
+              <input class="form-input" type="text" id="forbiddenInput" placeholder="z. B. 3, 7, 12"
+                style="margin-top:var(--space-2)">
+              <p class="form-hint">Kommagetrennte Punktnummern (<span id="forbiddenRangeHint">1–9</span>). Diese Punkte
+                werden nicht verbunden — weder als Start, Ziel noch Zwischenstation.</p>
+              <p class="form-error" id="forbiddenError">Bitte nur gültige Punktnummern angeben.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="margin-bottom:var(--space-2)">Erweiterte Optionen</label>
+
+            <label class="checkbox-row" for="avoidCrossing">
+              <input type="checkbox" id="avoidCrossing">
+              <span class="form-label" style="margin:0">Kreuzungen vermeiden</span>
+            </label>
+            <label class="checkbox-row" for="avoidPointReuse">
+              <input type="checkbox" id="avoidPointReuse">
+              <span class="form-label" style="margin:0">Punktbelastung vermeiden</span>
+            </label>
+            <label class="checkbox-row" for="avoidConcentration">
+              <input type="checkbox" id="avoidConcentration">
+              <span class="form-label" style="margin:0">Konzentration vermeiden</span>
+            </label>
+            <label class="checkbox-row" for="treeMode">
+              <input type="checkbox" id="treeMode">
+              <span class="form-label" style="margin:0">Ast-Generierung</span>
+            </label>
+            <label class="checkbox-row" for="multiMode" style="margin-bottom:0">
+              <input type="checkbox" id="multiMode">
+              <span class="form-label" style="margin:0">Mehrere Elemente</span>
+            </label>
+          </div>
+
+          <div class="form-group" id="stepsGroup">
+            <label class="form-label" for="stepsInput">Schritte</label>
+            <input class="form-input" type="number" id="stepsInput" min="1" value="8">
+            <p class="form-hint">Maximal möglich: <strong id="maxSteps">–</strong> <span id="maxStepsQualifier"></span>
+            </p>
+            <p class="form-error" id="stepsError">Die Anzahl der Schritte darf das Maximum nicht überschreiten.</p>
+          </div>
+
+          <div class="form-group" id="multiFieldsGroup" style="display:none">
+            <label class="form-label">Mehrere Elemente</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="multiTotalPoints">Gesamtzahl Punkte</label>
+                <input class="form-input" type="number" id="multiTotalPoints" min="2" max="10" step="1"
+                  inputmode="numeric" value="10">
+              </div>
+              <span class="custom-grid-x">/</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="multiElementCount">Anzahl Elemente</label>
+                <input class="form-input" type="number" id="multiElementCount" min="1" max="5" step="1"
+                  inputmode="numeric" value="2">
+              </div>
+            </div>
+            <div class="custom-grid-row" style="margin-top:var(--space-3)">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="multiMinPoints">Min. Punkte/Element</label>
+                <input class="form-input" type="number" id="multiMinPoints" min="2" max="5" step="1" inputmode="numeric"
+                  value="2">
+              </div>
+              <span class="custom-grid-x">–</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="multiMaxPoints">Max. Punkte/Element</label>
+                <input class="form-input" type="number" id="multiMaxPoints" min="2" max="8" step="1" inputmode="numeric"
+                  value="8">
+              </div>
+            </div>
+            <label class="checkbox-row" for="multiBalanced" style="margin-top:var(--space-3);margin-bottom:0">
+              <input type="checkbox" id="multiBalanced">
+              <span class="form-label" style="margin:0">Möglichst gleichmäßige Verteilung</span>
+            </label>
+            <p class="form-error" id="multiFieldsError">Diese Kombination aus Gesamtzahl, Anzahl Elementen, Min. und
+              Max. ist nicht erfüllbar.</p>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0">
+            <button class="btn btn-blue" id="generateBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M4 4l16 16M20 4L4 20"></path>
+              </svg>
+              Zufällige Glyphe
+            </button>
+            <button class="btn btn-secondary" id="enumerateBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              </svg>
+              Alle Kombinationen
+            </button>
+            <button class="btn btn-ghost" id="regenerateBtn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+              </svg>
+              Neu würfeln
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="card output-card">
+        <div class="output-header">
+          <h2 id="outputTitle">Glyphe</h2>
+        </div>
+        <div class="output-canvas single-mode" id="outputCanvas">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round">
+              <circle cx="6" cy="6" r="2"></circle>
+              <circle cx="18" cy="6" r="2"></circle>
+              <circle cx="6" cy="18" r="2"></circle>
+              <circle cx="18" cy="18" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+            <div>Noch keine Glyphe erzeugt. Wähle die Schritte und klicke auf „Zufällige Glyphe“ oder „Alle
+              Kombinationen“.</div>
+          </div>
+        </div>
+        <div class="sequence-footer" id="sequenceFooter" style="display:none">
+          <div class="sequence-label">Punktreihenfolge</div>
+          <div class="sequence-chain" id="sequenceChain"></div>
+          <div class="export-row">
+            <button class="btn-export" id="exportSvgBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M12 15V3"></path>
+              </svg>
+              Als SVG exportieren
+            </button>
+            <button class="btn-export" id="exportPngBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M12 15V3"></path>
+              </svg>
+              Als PNG exportieren
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <div class="layout">
-
-    <!-- CONTROL PANEL -->
-    <div class="card">
-      <div class="card-body">
-        <h2 class="card-title">Einstellungen</h2>
-        <p class="card-subtitle">Raster und Verbindungsschritte festlegen.</p>
-
-        <div class="form-group">
-          <label class="form-label" for="gridSelect">Raster</label>
-          <select class="form-select" id="gridSelect">
-            <option value="3x3">3 × 3 — 9 Punkte</option>
-            <option value="4x4">4 × 4 — 16 Punkte</option>
-            <option value="5x5">5 × 5 — 25 Punkte</option>
-            <option value="custom">Benutzerdefiniert…</option>
-            <option value="hexagon">Hexagon…</option>
-            <option value="circle">Kreis…</option>
-            <option value="ellipse">Ellipse…</option>
-            <option value="triangle">Dreieck…</option>
-            <option value="rhombus">Raute…</option>
-            <option value="trapezoid">Trapez…</option>
-            <option value="parallelogram">Parallelogramm…</option>
-          </select>
-        </div>
-
-        <div class="form-group" id="customGridGroup" style="display:none">
-          <label class="form-label">Eigene Rastergröße</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="customWidth">Breite</label>
-              <input class="form-input" type="number" id="customWidth" min="2" value="4">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="customHeight">Höhe</label>
-              <input class="form-input" type="number" id="customHeight" min="2" value="6">
-            </div>
-          </div>
-          <p class="form-hint">Mindestens 2 × 2. Beispiele: 2×3, 4×6, 7×3.</p>
-          <p class="form-error" id="customGridError">Breite und Höhe müssen mindestens 2 betragen.</p>
-        </div>
-
-        <div class="form-group" id="hexGridGroup" style="display:none">
-          <label class="form-label">Hexagon-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="hexDiag">Schrägseiten</label>
-              <input class="form-input" type="number" id="hexDiag" min="1" value="3">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="hexVert">Vertikalseiten</label>
-              <input class="form-input" type="number" id="hexVert" min="1" value="3">
-            </div>
-          </div>
-          <p class="form-hint">Schrägseiten bestimmen, wie stark sich die Reihen oben/unten verjüngen; Vertikalseiten die Anzahl der Reihen auf voller Breite. Beispiel 3×3: Reihenbreiten 1, 3, 5, 5, 5, 3, 1.</p>
-          <p class="form-error" id="hexGridError">Schrägseiten und Vertikalseiten müssen mindestens 1 betragen.</p>
-        </div>
-
-        <div class="form-group" id="circleGridGroup" style="display:none">
-          <label class="form-label" for="circleRings">Kreis-Ringe</label>
-          <input class="form-input" type="number" id="circleRings" min="1" value="3">
-          <p class="form-hint">Ring k (außer Zentrum) hat immer 4×k Punkte (Ring1=4, Ring2=8, Ring3=12, …), verteilt im Uhrzeigersinn ab 12 Uhr. Mit 3 Ringen entstehen 25 Punkte.</p>
-          <p class="form-error" id="circleGridError">Die Ringzahl muss mindestens 1 betragen.</p>
-        </div>
-
-        <div class="form-group" id="ellipseGridGroup" style="display:none">
-          <label class="form-label">Ellipsen-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="ellipseWidth">Breite (Ringe)</label>
-              <input class="form-input" type="number" id="ellipseWidth" min="1" value="2">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="ellipseHeight">Höhe (Ringe)</label>
-              <input class="form-input" type="number" id="ellipseHeight" min="1" value="4">
-            </div>
-          </div>
-          <p class="form-hint">Wie beim Kreis, aber mit unabhängiger horizontaler und vertikaler Streckung. Die größere der beiden Zahlen bestimmt die Ringzahl/Punktdichte; die kleinere staucht diese Achse entsprechend. Bei gleichen Werten entsteht ein Kreis.</p>
-          <p class="form-error" id="ellipseGridError">Breite und Höhe müssen mindestens 1 betragen.</p>
-        </div>
-
-        <div class="form-group" id="triangleGridGroup" style="display:none">
-          <label class="form-label">Dreieck-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="triangleWidth">Breite (unten)</label>
-              <input class="form-input" type="number" id="triangleWidth" min="1" step="2" value="5">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="triangleHeight">Höhe</label>
-              <input class="form-input" type="number" id="triangleHeight" min="1" value="3">
-            </div>
-          </div>
-          <p class="form-hint">Breite muss ungerade sein, damit jede Zwischenreihe exakt unter der Spitze zentriert bleibt. Standardverhältnis Breite=2×Höhe−1 (z. B. 5×3) lässt jede Reihe um genau 2 Punkte wachsen; andere Kombinationen werden gleichmäßig dazwischen interpoliert.</p>
-          <p class="form-error" id="triangleGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.</p>
-        </div>
-
-        <div class="form-group" id="rhombusGridGroup" style="display:none">
-          <label class="form-label">Rauten-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="rhombusWidth">Breite (Mitte)</label>
-              <input class="form-input" type="number" id="rhombusWidth" min="1" step="2" value="5">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="rhombusHeight">Höhe</label>
-              <input class="form-input" type="number" id="rhombusHeight" min="1" value="5">
-            </div>
-          </div>
-          <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis zur Mitte auf „Breite" an und nimmt danach spiegelbildlich wieder ab (z. B. 5×5 → Reihenbreiten 1,3,5,3,1).</p>
-          <p class="form-error" id="rhombusGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.</p>
-        </div>
-
-        <div class="form-group" id="trapezoidGridGroup" style="display:none">
-          <label class="form-label">Trapez-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="trapezoidTop">Oberseite</label>
-              <input class="form-input" type="number" id="trapezoidTop" min="1" value="3">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="trapezoidHeight">Höhe</label>
-              <input class="form-input" type="number" id="trapezoidHeight" min="1" value="3">
-            </div>
-          </div>
-          <p class="form-hint">Jede Reihe wächst von der Oberseite ausgehend um genau 2 Punkte. Unterseite = Oberseite + 2×(Höhe−1) — automatisch berechnet, immer zentriert.</p>
-          <p class="form-error" id="trapezoidGridError">Oberseite und Höhe müssen mindestens 1 betragen.</p>
-        </div>
-
-        <div class="form-group" id="parallelogramGridGroup" style="display:none">
-          <label class="form-label">Parallelogramm-Größe</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="parallelogramSide">Seitenlänge</label>
-              <input class="form-input" type="number" id="parallelogramSide" min="1" value="4">
-            </div>
-            <span class="custom-grid-x">×</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="parallelogramHeight">Höhe</label>
-              <input class="form-input" type="number" id="parallelogramHeight" min="1" value="3">
-            </div>
-          </div>
-          <div class="form-group" style="margin-top:var(--space-3);margin-bottom:0">
-            <label class="form-hint" for="parallelogramOffset">Versatz pro Reihe</label>
-            <input class="form-input" type="number" id="parallelogramOffset" value="-1">
-          </div>
-          <p class="form-hint">Jede Reihe hat dieselbe Seitenlänge, verschiebt sich aber kumulativ um „Versatz" Spalten gegenüber der vorherigen Reihe. Negativ = nach links, positiv = nach rechts. Beispiel: Versatz −2 verschiebt Reihe 2 um 2, Reihe 3 um 4 Punkte nach links.</p>
-          <p class="form-error" id="parallelogramGridError">Seitenlänge und Höhe müssen mindestens 1 betragen.</p>
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-row" for="forbiddenEnabled">
-            <input type="checkbox" id="forbiddenEnabled">
-            <span class="form-label" style="margin:0">Verbotene Punkte verwenden</span>
-          </label>
-          <div id="forbiddenFieldWrap" style="display:none">
-            <input class="form-input" type="text" id="forbiddenInput" placeholder="z. B. 3, 7, 12" style="margin-top:var(--space-2)">
-            <p class="form-hint">Kommagetrennte Punktnummern (<span id="forbiddenRangeHint">1–9</span>). Diese Punkte werden nicht verbunden — weder als Start, Ziel noch Zwischenstation.</p>
-            <p class="form-error" id="forbiddenError">Bitte nur gültige Punktnummern angeben.</p>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" style="margin-bottom:var(--space-2)">Erweiterte Optionen</label>
-
-          <label class="checkbox-row" for="avoidCrossing">
-            <input type="checkbox" id="avoidCrossing">
-            <span class="form-label" style="margin:0">Kreuzungen vermeiden</span>
-          </label>
-          <label class="checkbox-row" for="avoidPointReuse">
-            <input type="checkbox" id="avoidPointReuse">
-            <span class="form-label" style="margin:0">Punktbelastung vermeiden</span>
-          </label>
-          <label class="checkbox-row" for="avoidConcentration">
-            <input type="checkbox" id="avoidConcentration">
-            <span class="form-label" style="margin:0">Konzentration vermeiden</span>
-          </label>
-          <label class="checkbox-row" for="treeMode">
-            <input type="checkbox" id="treeMode">
-            <span class="form-label" style="margin:0">Ast-Generierung</span>
-          </label>
-          <label class="checkbox-row" for="multiMode" style="margin-bottom:0">
-            <input type="checkbox" id="multiMode">
-            <span class="form-label" style="margin:0">Mehrere Elemente</span>
-          </label>
-          <p class="form-hint">Ast-Generierung erzeugt verzweigende Äste ohne Rückverbindung statt einer durchgehenden Linie und schließt „Punktbelastung vermeiden“ automatisch ein. „Mehrere Elemente“ erzeugt stattdessen mehrere getrennte, unverbundene Linien, die sich denselben Punktevorrat teilen — beide Modi schließen sich gegenseitig aus.</p>
-        </div>
-
-        <div class="form-group" id="stepsGroup">
-          <label class="form-label" for="stepsInput">Schritte</label>
-          <input class="form-input" type="number" id="stepsInput" min="1" value="8">
-          <p class="form-hint">Maximal möglich: <strong id="maxSteps">–</strong> <span id="maxStepsQualifier"></span></p>
-          <p class="form-error" id="stepsError">Die Anzahl der Schritte darf das Maximum nicht überschreiten.</p>
-        </div>
-
-        <div class="form-group" id="multiFieldsGroup" style="display:none">
-          <label class="form-label">Mehrere Elemente</label>
-          <div class="custom-grid-row">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="multiTotalPoints">Gesamtzahl Punkte</label>
-              <input class="form-input" type="number" id="multiTotalPoints" min="4" value="10">
-            </div>
-            <span class="custom-grid-x">/</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="multiElementCount">Anzahl Elemente</label>
-              <input class="form-input" type="number" id="multiElementCount" min="1" value="2">
-            </div>
-          </div>
-          <div class="custom-grid-row" style="margin-top:var(--space-3)">
-            <div class="custom-grid-field">
-              <label class="form-hint" for="multiMinPoints">Min. Punkte/Element</label>
-              <input class="form-input" type="number" id="multiMinPoints" min="2" value="2">
-            </div>
-            <span class="custom-grid-x">–</span>
-            <div class="custom-grid-field">
-              <label class="form-hint" for="multiMaxPoints">Max. Punkte/Element</label>
-              <input class="form-input" type="number" id="multiMaxPoints" min="2" value="6">
-            </div>
-          </div>
-          <p class="form-hint">Die Gesamtzahl Punkte wird auf die Elemente aufgeteilt (jedes zwischen Min. und Max.), ohne dass sich Elemente Punkte teilen. Gesamtzahl ÷ Anzahl Elemente darf nie unter 2 fallen — sonst reichen die Punkte für keine einzige Linie. „Alle Kombinationen“ ist in diesem Modus nicht verfügbar.</p>
-          <p class="form-error" id="multiFieldsError">Diese Kombination aus Gesamtzahl, Anzahl Elementen, Min. und Max. ist nicht erfüllbar.</p>
-        </div>
-
-        <div class="form-group" style="margin-bottom:0">
-          <button class="btn btn-blue" id="generateBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16M20 4L4 20"></path></svg>
-            Zufällige Glyphe
-          </button>
-          <button class="btn btn-secondary" id="enumerateBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
-            Alle Kombinationen
-          </button>
-          <button class="btn btn-ghost" id="regenerateBtn" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path></svg>
-            Neu würfeln
-          </button>
-          <p class="form-hint" style="margin-top:var(--space-4)">„Alle Kombinationen" lädt fortlaufend nach, während du scrollst — es gibt keine feste Obergrenze mehr, die Berechnung passiert häppchenweise im Hintergrund.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- OUTPUT -->
-    <div class="card output-card">
-      <div class="output-header">
-        <h2 id="outputTitle">Glyphe</h2>
-        <span class="badge badge-neutral" id="statusBadge">Bereit</span>
-      </div>
-      <div class="output-canvas single-mode" id="outputCanvas">
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-          <div>Noch keine Glyphe erzeugt. Wähle die Schritte und klicke auf „Zufällige Glyphe“ oder „Alle Kombinationen“.</div>
-        </div>
-      </div>
-      <div class="sequence-footer" id="sequenceFooter" style="display:none">
-        <div class="sequence-label">Punktreihenfolge</div>
-        <div class="sequence-chain" id="sequenceChain"></div>
-        <div class="export-row">
-          <button class="btn-export" id="exportSvgBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
-            Als SVG exportieren
-          </button>
-          <button class="btn-export" id="exportPngBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
-            Als PNG exportieren
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<script src="main.js"></script>
+  <script src="main.js"></script>
 </body>
+
 </html>
