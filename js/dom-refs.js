@@ -1,0 +1,99 @@
+/* =====================================================
+   DOM-REFERENZEN
+   Zentrale Sammelstelle aller per ID abgefragten Elemente.
+   Wird von main.js beim Start importiert (Modul-Top-Level-
+   Code läuft dabei automatisch), alle anderen Module lesen
+   die hier einmalig aufgelösten Referenzen.
+   ===================================================== */
+
+// ---------- Ausgabe-/Ergebnisbereich ----------
+export const outputCanvas   = document.getElementById('outputCanvas');
+export const sequenceFooter = document.getElementById('sequenceFooter');
+export const sequenceChain  = document.getElementById('sequenceChain');
+// Das Status-Pillen-Element neben dem Titel wurde entfernt. Die vielen
+// Stellen im Code, die weiterhin einen Statustext zuweisen (Fortschritt,
+// Fehler, "Bereit" etc.), bleiben unverändert bestehen — sie schreiben
+// einfach ins Leere, statt jede einzelne Zuweisung entfernen zu müssen.
+export const statusBadge    = { textContent: '' };
+export const outputTitle    = document.getElementById('outputTitle');
+
+// ---------- Export-Buttons ----------
+export const exportSvgBtn = document.getElementById('exportSvgBtn');
+export const exportPngBtn = document.getElementById('exportPngBtn');
+
+// ---------- Export-Optionen ----------
+export const exportShowNumbers      = document.getElementById('exportShowNumbers');
+export const exportShowPoints       = document.getElementById('exportShowPoints');
+export const exportHollowPoints     = document.getElementById('exportHollowPoints');
+export const exportShowStartRing    = document.getElementById('exportShowStartRing');
+export const exportShowUnusedPoints = document.getElementById('exportShowUnusedPoints');
+export const exportColor            = document.getElementById('exportColor');
+
+// ---------- Raster-Auswahl ----------
+export const gridSelect         = document.getElementById('gridSelect');
+export const customGridGroup    = document.getElementById('customGridGroup');
+export const customWidth        = document.getElementById('customWidth');
+export const customHeight       = document.getElementById('customHeight');
+export const customGridError    = document.getElementById('customGridError');
+export const hexGridGroup       = document.getElementById('hexGridGroup');
+export const hexDiag            = document.getElementById('hexDiag');
+export const hexVert            = document.getElementById('hexVert');
+export const hexGridError       = document.getElementById('hexGridError');
+export const circleGridGroup    = document.getElementById('circleGridGroup');
+export const circleRings        = document.getElementById('circleRings');
+export const circleGridError    = document.getElementById('circleGridError');
+export const ellipseGridGroup   = document.getElementById('ellipseGridGroup');
+export const ellipseWidth       = document.getElementById('ellipseWidth');
+export const ellipseHeight      = document.getElementById('ellipseHeight');
+export const ellipseGridError   = document.getElementById('ellipseGridError');
+export const triangleGridGroup  = document.getElementById('triangleGridGroup');
+export const triangleWidth      = document.getElementById('triangleWidth');
+export const triangleHeight     = document.getElementById('triangleHeight');
+export const triangleGridError  = document.getElementById('triangleGridError');
+export const rhombusGridGroup   = document.getElementById('rhombusGridGroup');
+export const rhombusWidth       = document.getElementById('rhombusWidth');
+export const rhombusHeight      = document.getElementById('rhombusHeight');
+export const rhombusGridError   = document.getElementById('rhombusGridError');
+export const trapezoidGridGroup = document.getElementById('trapezoidGridGroup');
+export const trapezoidTop       = document.getElementById('trapezoidTop');
+export const trapezoidHeight    = document.getElementById('trapezoidHeight');
+export const trapezoidGridError = document.getElementById('trapezoidGridError');
+export const parallelogramGridGroup = document.getElementById('parallelogramGridGroup');
+export const parallelogramSide      = document.getElementById('parallelogramSide');
+export const parallelogramHeight    = document.getElementById('parallelogramHeight');
+export const parallelogramOffset    = document.getElementById('parallelogramOffset');
+export const parallelogramGridError = document.getElementById('parallelogramGridError');
+
+// ---------- Verbotene Punkte ----------
+export const forbiddenEnabled   = document.getElementById('forbiddenEnabled');
+export const forbiddenFieldWrap = document.getElementById('forbiddenFieldWrap');
+export const forbiddenInput     = document.getElementById('forbiddenInput');
+export const forbiddenError     = document.getElementById('forbiddenError');
+export const forbiddenRangeHint = document.getElementById('forbiddenRangeHint');
+
+// ---------- Erweiterte Optionen ----------
+export const avoidCrossingBox      = document.getElementById('avoidCrossing');
+export const avoidPointReuseBox    = document.getElementById('avoidPointReuse');
+export const avoidConcentrationBox = document.getElementById('avoidConcentration');
+export const treeModeBox           = document.getElementById('treeMode');
+export const multiModeBox          = document.getElementById('multiMode');
+
+// ---------- Schritte / Mehrere Elemente ----------
+export const stepsGroup        = document.getElementById('stepsGroup');
+export const stepsInput        = document.getElementById('stepsInput');
+export const maxStepsLabel     = document.getElementById('maxSteps');
+export const maxStepsQualifier = document.getElementById('maxStepsQualifier');
+export const stepsError        = document.getElementById('stepsError');
+export const multiFieldsGroup  = document.getElementById('multiFieldsGroup');
+export const multiTotalPoints  = document.getElementById('multiTotalPoints');
+export const multiElementCount = document.getElementById('multiElementCount');
+export const multiMinPoints    = document.getElementById('multiMinPoints');
+export const multiMaxPoints    = document.getElementById('multiMaxPoints');
+export const multiFieldsError  = document.getElementById('multiFieldsError');
+export const multiBalancedBox  = document.getElementById('multiBalanced');
+export const multiFieldsErrorDefaultText = multiFieldsError.textContent;
+
+// ---------- Aktions-Buttons ----------
+export const generateBtn   = document.getElementById('generateBtn');
+export const enumerateBtn  = document.getElementById('enumerateBtn');
+export const regenerateBtn = document.getElementById('regenerateBtn');
