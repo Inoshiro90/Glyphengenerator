@@ -12,6 +12,8 @@ import {
   circleRings, ellipseWidth, ellipseHeight,
   triangleWidth, triangleHeight, rhombusWidth, rhombusHeight,
   trapezoidTop, trapezoidHeight, parallelogramSide, parallelogramHeight, parallelogramOffset,
+  kiteWidth, kiteTop, kiteBottom,
+  pentagonRings, heptagonRings, octagonRings, nonagonRings, decagonRings, semicircleRings,
   forbiddenEnabled, forbiddenInput,
   avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
   stepsInput, multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints,
@@ -95,6 +97,14 @@ parallelogramOffset.addEventListener('change', rebuildGridAndRefresh);
 parallelogramSide.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramOffset.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+// Drachentrapez, die fünf regelmäßigen Vielecke und Halbkreis: als
+// Schleife statt Einzelzeilen verdrahtet (weniger Fehlerrisiko bei
+// neun neuen, strukturell identischen Feldern).
+[kiteWidth, kiteTop, kiteBottom, pentagonRings, heptagonRings, octagonRings, nonagonRings, decagonRings, semicircleRings]
+  .forEach(el => {
+    el.addEventListener('change', rebuildGridAndRefresh);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+  });
 forbiddenEnabled.addEventListener('change', handleForbiddenEnabledChange);
 forbiddenInput.addEventListener('change', refreshForbiddenOnly);
 forbiddenInput.addEventListener('keydown', e => { if (e.key === 'Enter') refreshForbiddenOnly(); });

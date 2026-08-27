@@ -5,8 +5,15 @@
    ===================================================== */
 export { buildGridDefinition } from './grid-square.js';
 export { buildHexGridDefinition } from './grid-hex.js';
-export { buildRadialGridDefinition, buildCircleGridDefinition, buildEllipseGridDefinition } from './grid-radial.js';
+export {
+  buildRadialGridDefinition, buildCircleGridDefinition, buildEllipseGridDefinition, buildSemicircleGridDefinition
+} from './grid-radial.js';
 export { buildTriangleGridDefinition } from './grid-triangle.js';
 export { buildRhombusGridDefinition } from './grid-rhombus.js';
 export { buildTrapezoidGridDefinition } from './grid-trapezoid.js';
 export { buildParallelogramGridDefinition } from './grid-parallelogram.js';
+export { buildKiteGridDefinition } from './grid-kite.js';
+export {
+  buildPolygonGridDefinition, buildPentagonGridDefinition, buildHeptagonGridDefinition,
+  buildOctagonGridDefinition, buildNonagonGridDefinition, buildDecagonGridDefinition
+} from './grid-polygon.js';

@@ -77,8 +77,12 @@ export function glyphSVG(grid, graph, edges, opts) {
       return;
     }
 
-    const hollowStyle = hollowPoints ? 'fill:none;' : '';
-    const activeStyle = active ? `stroke:var(--color-accent);stroke-width:1.5;${hollowStyle}` : hollowStyle;
+    // "Punkte hohl" (Checkbox): NICHT ausgewählt → Punkte werden in der
+    // Glyphenfarbe gefüllt (var(--color-accent), wird beim Export in
+    // export.js global auf die tatsächliche Akzent-/Wunschfarbe aufgelöst).
+    // Ausgewählt → Punkte werden weiß gefüllt statt in der Glyphenfarbe.
+    const fillStyle = hollowPoints ? 'fill:#ffffff;' : 'fill:var(--color-accent);';
+    const activeStyle = (active ? 'stroke:var(--color-accent);stroke-width:1.5;' : '') + fillStyle;
     const label = showNumbers
       ? `<text class="glyph-point-label" x="${p.x}" y="${p.y + 0.5}" style="font-size:${style.font}px">${v}</text>`
       : '';

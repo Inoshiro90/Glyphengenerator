@@ -87,25 +87,30 @@ export function downloadSVGAsPNG(svgString, filename, pixelSize) {
   img.src = url;
 }
 
+// Kurzlabel für den Dateinamen je Rasterform. Als Lookup-Tabelle statt
+// einer langen Ternary-Kette, da inzwischen 13 Formen unterstützt werden.
+const DIMS_LABEL = {
+  hex: g => `hex${g.d}x${g.v}`,
+  circle: g => `kreis${g.n}`,
+  ellipse: g => `ellipse${g.rx}x${g.ry}`,
+  triangle: g => `dreieck${g.width}x${g.height}`,
+  rhombus: g => `raute${g.width}x${g.height}`,
+  trapezoid: g => `trapez${g.top}x${g.height}`,
+  parallelogram: g => `parallelogramm${g.sideLength}x${g.height}_versatz${g.offset}`,
+  kite: g => `drachentrapez${g.width}_oben${g.oben}_unten${g.unten}`,
+  pentagon: g => `fuenfeck${g.n}`,
+  heptagon: g => `siebeneck${g.n}`,
+  octagon: g => `achteck${g.n}`,
+  nonagon: g => `neuneck${g.n}`,
+  decagon: g => `zehneck${g.n}`,
+  semicircle: g => `halbkreis${g.n}`
+};
+
 // Baut einen sprechenden Dateinamen aus Rasterform/-größe, Schrittzahl
 // (bzw. bei "Mehrere Elemente" der Elementanzahl) und Zeitstempel-freiem
 // Präfix zusammen.
 export function buildExportFilename(prefix, ext, grid, singleResult, stepsValue) {
-  const dims = grid.shape === 'hex'
-    ? `hex${grid.d}x${grid.v}`
-    : grid.shape === 'circle'
-    ? `kreis${grid.n}`
-    : grid.shape === 'ellipse'
-    ? `ellipse${grid.rx}x${grid.ry}`
-    : grid.shape === 'triangle'
-    ? `dreieck${grid.width}x${grid.height}`
-    : grid.shape === 'rhombus'
-    ? `raute${grid.width}x${grid.height}`
-    : grid.shape === 'trapezoid'
-    ? `trapez${grid.top}x${grid.height}`
-    : grid.shape === 'parallelogram'
-    ? `parallelogramm${grid.sideLength}x${grid.height}_versatz${grid.offset}`
-    : `${grid.cols}x${grid.rows}`;
+  const dims = (DIMS_LABEL[grid.shape] || (g => `${g.cols}x${g.rows}`))(grid);
   if (singleResult && singleResult.isMulti) {
     return `${prefix}_${dims}_${singleResult.elements.length}elemente.${ext}`;
   }

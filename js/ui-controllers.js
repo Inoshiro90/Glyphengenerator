@@ -14,6 +14,13 @@ import {
   rhombusGridGroup, rhombusWidth, rhombusHeight, rhombusGridError,
   trapezoidGridGroup, trapezoidTop, trapezoidHeight, trapezoidGridError,
   parallelogramGridGroup, parallelogramSide, parallelogramHeight, parallelogramOffset, parallelogramGridError,
+  kiteGridGroup, kiteWidth, kiteTop, kiteBottom, kiteGridError,
+  pentagonGridGroup, pentagonRings, pentagonGridError,
+  heptagonGridGroup, heptagonRings, heptagonGridError,
+  octagonGridGroup, octagonRings, octagonGridError,
+  nonagonGridGroup, nonagonRings, nonagonGridError,
+  decagonGridGroup, decagonRings, decagonGridError,
+  semicircleGridGroup, semicircleRings, semicircleGridError,
   forbiddenEnabled, forbiddenFieldWrap, forbiddenInput, forbiddenError, forbiddenRangeHint,
   avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
   stepsGroup, stepsInput, maxStepsLabel, maxStepsQualifier, stepsError,
@@ -25,7 +32,10 @@ import {
 import { state, invalidateEnumSession } from './state.js';
 import {
   buildGridDefinition, buildHexGridDefinition, buildCircleGridDefinition, buildEllipseGridDefinition,
-  buildTriangleGridDefinition, buildRhombusGridDefinition, buildTrapezoidGridDefinition, buildParallelogramGridDefinition
+  buildTriangleGridDefinition, buildRhombusGridDefinition, buildTrapezoidGridDefinition, buildParallelogramGridDefinition,
+  buildKiteGridDefinition, buildSemicircleGridDefinition,
+  buildPentagonGridDefinition, buildHeptagonGridDefinition, buildOctagonGridDefinition,
+  buildNonagonGridDefinition, buildDecagonGridDefinition
 } from './grids/index.js';
 import { buildGraph } from './graph.js';
 import { computeMaxSteps } from './generation/max-steps.js';
@@ -157,16 +167,16 @@ export function refreshMaxSteps() {
 //                 — mehr darf der GARANTIERTE Mindestwert pro Element
 //                 nicht sein, sonst würden schon `Anzahl` Elemente an
 //                 diesem Minimum allein die Gesamtzahl überschreiten).
-//   Max.        → hängt von Gesamtzahl, Anzahl UND dem (bereits
-//                 aufgelösten) Min. ab: Gesamtzahl−(Anzahl−1)×Min. —
+//   Max.        → hängt von Gesamtzahl UND Anzahl ab (NICHT vom
+//                 aktuellen Min.-Feldwert): Gesamtzahl−(Anzahl−1)×2 —
 //                 so viele Punkte könnte EIN Element theoretisch
-//                 bekommen, wenn alle übrigen Elemente nur ihr
-//                 Minimum erhalten. Bewusst NICHT ⌊Gesamtzahl÷Anzahl⌋
-//                 (der Durchschnitt): das würde bei glatt teilbaren
-//                 Werten (z. B. 24 Punkte auf 3 Elemente → 8) jede
-//                 Varianz von vornherein unmöglich machen, da dann
-//                 ausnahmslos JEDES Element exakt beim Durchschnitt
-//                 landen müsste.
+//                 bekommen, wenn alle übrigen Elemente nur die feste
+//                 harte Mindestpunktzahl (2) erhalten. Bewusst NICHT
+//                 der eingetragene Min.-Wert (der standardmäßig nahe
+//                 am Durchschnitt ⌊Gesamt÷Anzahl⌋ liegt): das würde
+//                 die Obergrenze von Max. ebenfalls an den Durchschnitt
+//                 drücken und jede Varianz von vornherein unmöglich
+//                 machen.
 // Wird in dieser Reihenfolge ausgewertet, damit sich eine Änderung an
 // einem Feld korrekt auf alle davon abhängigen Felder fortpflanzt —
 // unabhängig davon, welches Feld zuletzt bearbeitet wurde.
@@ -187,17 +197,23 @@ export function updateMultiFieldBoundAttributes() {
   multiTotalPoints.max = totalMax;
   const total = Number(multiTotalPoints.value) || totalMax;
 
-  const countMax = Math.max(1, Math.floor(total / 2));
-  multiElementCount.min = 1;
+  const countMax = Math.max(2, Math.floor(total / 2));
+  multiElementCount.min = 2;
   multiElementCount.max = countMax;
   const count = Number(multiElementCount.value) || countMax;
 
   const minCeil = Math.max(2, Math.floor(total / count));
   multiMinPoints.min = 2;
   multiMinPoints.max = minCeil;
-  const min = Number(multiMinPoints.value) || 2;
 
-  const maxCeil = Math.max(2, total - (count - 1) * Math.min(min, minCeil));
+  // Bewusst NICHT der aktuelle Wert des Min.-Feldes (der standardmäßig
+  // nahe am Durchschnitt ⌊Gesamt÷Anzahl⌋ liegt) — das würde die
+  // Obergrenze von Max. ebenfalls nahe an den Durchschnitt drücken und
+  // jede Varianz von vornherein unmöglich machen. Stattdessen die feste
+  // harte Mindestpunktzahl (2): so viele Punkte könnte EIN Element
+  // maximal bekommen, wenn alle übrigen Elemente nur das Minimum (2)
+  // erhalten.
+  const maxCeil = Math.max(2, total - (count - 1) * 2);
   multiMaxPoints.min = 2;
   multiMaxPoints.max = maxCeil;
 }
@@ -274,22 +290,23 @@ export function updateMultiFieldBounds() {
   clampFieldToBounds(multiTotalPoints, 2, Math.max(2, state.currentMaxInfo.value + 1));
   const total = Number(multiTotalPoints.value);
 
-  clampFieldToBounds(multiElementCount, 1, Math.max(1, Math.floor(total / 2)));
+  clampFieldToBounds(multiElementCount, 2, Math.max(2, Math.floor(total / 2)));
   const count = Number(multiElementCount.value);
 
   const minCeil = Math.max(2, Math.floor(total / count));
   clampFieldToBounds(multiMinPoints, 2, minCeil);
-  const min = Number(multiMinPoints.value);
 
-  const maxCeil = Math.max(2, total - (count - 1) * min);
+  // Siehe Kommentar in updateMultiFieldBoundAttributes(): feste harte
+  // Mindestpunktzahl (2) statt des aktuellen Min.-Feldwerts.
+  const maxCeil = Math.max(2, total - (count - 1) * 2);
   clampFieldToBounds(multiMaxPoints, 2, maxCeil);
 
   ensureMultiFieldsFeasible();
 }
 
 // Prüft die vier Eingabefelder des "Mehrere Elemente"-Modus rein
-// arithmetisch (unabhängig vom aktuellen Raster): Minimum ≥ 2,
-// Minimum ≤ Maximum ≤ Gesamtzahl, und die vom Nutzer geforderte
+// arithmetisch (unabhängig vom aktuellen Raster): Anzahl Elemente ≥ 2,
+// Minimum ≥ 2, Minimum ≤ Maximum ≤ Gesamtzahl, und die vom Nutzer geforderte
 // Sanity-Check-Regel "Gesamtzahl ÷ Anzahl Elemente darf nie unter 2
 // fallen" — zusammen mit der allgemeineren Aufteilbarkeits-Prüfung
 // (Anzahl×Minimum ≤ Gesamtzahl ≤ Anzahl×Maximum), die diese Regel für
@@ -305,7 +322,7 @@ export function validateMultiFields() {
 
   const basicValid =
     Number.isInteger(total) && total >= 2 &&
-    Number.isInteger(count) && count >= 1 &&
+    Number.isInteger(count) && count >= 2 &&
     Number.isInteger(min) && min >= 2 &&
     Number.isInteger(max) && max >= min && max <= total;
 
@@ -578,6 +595,64 @@ export function getSelectedDimensions() {
   parallelogramHeight.classList.remove('error');
   parallelogramOffset.classList.remove('error');
 
+  if (gridSelect.value === 'kite') {
+    const width = Number(kiteWidth.value);
+    const top = Number(kiteTop.value);
+    const bottom = Number(kiteBottom.value);
+    const invalid =
+      !Number.isInteger(width) || !Number.isInteger(top) || !Number.isInteger(bottom) ||
+      width < 1 || top < 1 || bottom < 1 ||
+      width % 2 === 0 ||
+      width > CUSTOM_MAX_DIM || top > CUSTOM_MAX_DIM || bottom > CUSTOM_MAX_DIM;
+    kiteWidth.classList.toggle('error', invalid);
+    kiteTop.classList.toggle('error', invalid);
+    kiteBottom.classList.toggle('error', invalid);
+    kiteGridError.classList.toggle('visible', invalid);
+    kiteGridError.textContent = width % 2 === 0
+      ? 'Die Breite muss ungerade sein, damit die Reihen zentriert bleiben.'
+      : `Breite, Oben und Unten müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    if (invalid) return null;
+    return { shape: 'kite', width, top, bottom };
+  }
+  kiteGridError.classList.remove('visible');
+  kiteWidth.classList.remove('error');
+  kiteTop.classList.remove('error');
+  kiteBottom.classList.remove('error');
+
+  const polygonShapes = {
+    pentagon: { input: pentagonRings, error: pentagonGridError },
+    heptagon: { input: heptagonRings, error: heptagonGridError },
+    octagon: { input: octagonRings, error: octagonGridError },
+    nonagon: { input: nonagonRings, error: nonagonGridError },
+    decagon: { input: decagonRings, error: decagonGridError }
+  };
+  if (polygonShapes[gridSelect.value]) {
+    const { input, error } = polygonShapes[gridSelect.value];
+    const n = Number(input.value);
+    const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+    input.classList.toggle('error', invalid);
+    error.classList.toggle('visible', invalid);
+    error.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    if (invalid) return null;
+    return { shape: gridSelect.value, n };
+  }
+  Object.values(polygonShapes).forEach(({ input, error }) => {
+    error.classList.remove('visible');
+    input.classList.remove('error');
+  });
+
+  if (gridSelect.value === 'semicircle') {
+    const n = Number(semicircleRings.value);
+    const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+    semicircleRings.classList.toggle('error', invalid);
+    semicircleGridError.classList.toggle('visible', invalid);
+    semicircleGridError.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    if (invalid) return null;
+    return { shape: 'semicircle', n };
+  }
+  semicircleGridError.classList.remove('visible');
+  semicircleRings.classList.remove('error');
+
   const [cols, rows] = gridSelect.value.split('x').map(Number);
   return { shape: 'rect', cols, rows };
 }
@@ -593,6 +668,9 @@ export function specFromGrid(grid) {
   if (grid.shape === 'rhombus') return { shape: 'rhombus', width: grid.width, height: grid.height };
   if (grid.shape === 'trapezoid') return { shape: 'trapezoid', top: grid.top, height: grid.height };
   if (grid.shape === 'parallelogram') return { shape: 'parallelogram', sideLength: grid.sideLength, height: grid.height, offset: grid.offset };
+  if (grid.shape === 'kite') return { shape: 'kite', width: grid.width, top: grid.oben, bottom: grid.unten };
+  if (['pentagon', 'heptagon', 'octagon', 'nonagon', 'decagon'].includes(grid.shape)) return { shape: grid.shape, n: grid.n };
+  if (grid.shape === 'semicircle') return { shape: 'semicircle', n: grid.n };
   return { shape: 'rect', cols: grid.cols, rows: grid.rows };
 }
 
@@ -605,6 +683,8 @@ export function specsEqual(a, b) {
   if (a.shape === 'rhombus') return a.width === b.width && a.height === b.height;
   if (a.shape === 'trapezoid') return a.top === b.top && a.height === b.height;
   if (a.shape === 'parallelogram') return a.sideLength === b.sideLength && a.height === b.height && a.offset === b.offset;
+  if (a.shape === 'kite') return a.width === b.width && a.top === b.top && a.bottom === b.bottom;
+  if (['pentagon', 'heptagon', 'octagon', 'nonagon', 'decagon', 'semicircle'].includes(a.shape)) return a.n === b.n;
   return a.cols === b.cols && a.rows === b.rows;
 }
 
@@ -633,24 +713,30 @@ export function parseForbiddenPoints(totalPoints) {
   return { set, error: null };
 }
 
+// Baut je nach Rasterform aus der Spezifikation das passende Grid-Objekt.
+// Als Lookup-Tabelle statt einer langen Ternary-Kette, da inzwischen 13
+// Formen unterstützt werden.
+const GRID_BUILDERS = {
+  hex: spec => buildHexGridDefinition(spec.d, spec.v),
+  circle: spec => buildCircleGridDefinition(spec.n),
+  ellipse: spec => buildEllipseGridDefinition(spec.rx, spec.ry),
+  triangle: spec => buildTriangleGridDefinition(spec.width, spec.height),
+  rhombus: spec => buildRhombusGridDefinition(spec.width, spec.height),
+  trapezoid: spec => buildTrapezoidGridDefinition(spec.top, spec.height),
+  parallelogram: spec => buildParallelogramGridDefinition(spec.sideLength, spec.height, spec.offset),
+  kite: spec => buildKiteGridDefinition(spec.width, spec.top, spec.bottom),
+  pentagon: spec => buildPentagonGridDefinition(spec.n),
+  heptagon: spec => buildHeptagonGridDefinition(spec.n),
+  octagon: spec => buildOctagonGridDefinition(spec.n),
+  nonagon: spec => buildNonagonGridDefinition(spec.n),
+  decagon: spec => buildDecagonGridDefinition(spec.n),
+  semicircle: spec => buildSemicircleGridDefinition(spec.n)
+};
+
 /* Baut Raster + Graph für gegebene Dimensionen tatsächlich neu auf
    (ohne Rückfrage) und berücksichtigt dabei verbotene Punkte. */
 export function performRebuild(spec) {
-  state.currentGrid = spec.shape === 'hex'
-    ? buildHexGridDefinition(spec.d, spec.v)
-    : spec.shape === 'circle'
-    ? buildCircleGridDefinition(spec.n)
-    : spec.shape === 'ellipse'
-    ? buildEllipseGridDefinition(spec.rx, spec.ry)
-    : spec.shape === 'triangle'
-    ? buildTriangleGridDefinition(spec.width, spec.height)
-    : spec.shape === 'rhombus'
-    ? buildRhombusGridDefinition(spec.width, spec.height)
-    : spec.shape === 'trapezoid'
-    ? buildTrapezoidGridDefinition(spec.top, spec.height)
-    : spec.shape === 'parallelogram'
-    ? buildParallelogramGridDefinition(spec.sideLength, spec.height, spec.offset)
-    : buildGridDefinition(spec.cols, spec.rows);
+  state.currentGrid = (GRID_BUILDERS[spec.shape] || (s => buildGridDefinition(s.cols, s.rows)))(spec);
   const totalPoints = Object.keys(state.currentGrid.points).length;
   forbiddenRangeHint.textContent = `1–${totalPoints}`;
 
@@ -742,6 +828,13 @@ export function handleGridSelectChange() {
   rhombusGridGroup.style.display = gridSelect.value === 'rhombus' ? 'block' : 'none';
   trapezoidGridGroup.style.display = gridSelect.value === 'trapezoid' ? 'block' : 'none';
   parallelogramGridGroup.style.display = gridSelect.value === 'parallelogram' ? 'block' : 'none';
+  kiteGridGroup.style.display = gridSelect.value === 'kite' ? 'block' : 'none';
+  pentagonGridGroup.style.display = gridSelect.value === 'pentagon' ? 'block' : 'none';
+  heptagonGridGroup.style.display = gridSelect.value === 'heptagon' ? 'block' : 'none';
+  octagonGridGroup.style.display = gridSelect.value === 'octagon' ? 'block' : 'none';
+  nonagonGridGroup.style.display = gridSelect.value === 'nonagon' ? 'block' : 'none';
+  decagonGridGroup.style.display = gridSelect.value === 'decagon' ? 'block' : 'none';
+  semicircleGridGroup.style.display = gridSelect.value === 'semicircle' ? 'block' : 'none';
   rebuildGridAndRefresh();
 }
 

@@ -115,3 +115,91 @@ export function buildCircleGridDefinition(n) {
 export function buildEllipseGridDefinition(rx, ry) {
   return buildRadialGridDefinition('ellipse', rx, ry);
 }
+
+/* =====================================================
+   HALBKREIS-RASTER
+   Dieselbe Ring-/Speichen-Konstruktion wie beim Kreis, aber auf einen
+   180°-Bogen von 9 Uhr (−90°) über 12 Uhr (0°) bis 3 Uhr (+90°)
+   beschränkt — die Kuppel wölbt sich nach oben, die flache Grundseite
+   liegt waagerecht auf halber Höhe. Ring k hat 2k+1 Punkte (statt 4k
+   beim Vollkreis, exakt die Hälfte plus die beiden Bogen-Enden), der
+   Ring-Zyklus bleibt eine OFFENE Kette (kein Kanten-Schluss zwischen
+   erstem und letztem Punkt — sonst entstünde eine Sehne quer durch den
+   Kreis statt der geraden Grundseite). Die Grundseite selbst braucht
+   keine eigene Sonderbehandlung: da die beiden Bogen-Enden jedes Rings
+   exakt bei −90°/+90° liegen, erzeugt die normale radiale
+   Speichen-Regel (nächstgelegener Winkel im inneren Ring) automatisch
+   zwei gerade Ketten vom Zentrum bis zum äußersten Ring entlang dieser
+   beiden Winkel — das IST die flache Grundseite.
+   ===================================================== */
+export function buildSemicircleGridDefinition(n) {
+  const VIEW = 320;
+  const margin = 40;
+  const cx = VIEW / 2;
+  // Die Kuppel ist doppelt so breit wie hoch; die Breite (2×unit×n) füllt
+  // die volle nutzbare Breite aus, die Höhe (unit×n) wird vertikal
+  // zentriert statt am oberen Rand zu kleben.
+  const unit = n === 0 ? 0 : (VIEW - 2 * margin) / (2 * n);
+  const domeHeight = unit * n;
+  const topOffset = margin + ((VIEW - 2 * margin) - domeHeight) / 2;
+  const cy = topOffset + domeHeight; // Grundlinie = Unterkante der Kuppel
+
+  const points = {};
+  const ringsById = {};
+  let id = 1;
+  for (let k = n; k >= 1; k--) {
+    const count = 2 * k + 1;
+    const ringPts = [];
+    for (let i = 0; i < count; i++) {
+      const angle = -Math.PI / 2 + i * (Math.PI / (2 * k)); // -90° .. +90°
+      points[id] = { x: cx + unit * k * Math.sin(angle), y: cy - unit * k * Math.cos(angle) };
+      ringPts.push({ id, angle });
+      id++;
+    }
+    ringsById[k] = ringPts;
+  }
+  const centerId = id;
+  points[centerId] = { x: cx, y: cy };
+  ringsById[0] = [{ id: centerId, angle: 0 }];
+
+  const adjacency = {};
+  Object.keys(points).forEach(k => (adjacency[k] = []));
+  function addEdge(a, b) {
+    if (!adjacency[a].includes(b)) adjacency[a].push(b);
+    if (!adjacency[b].includes(a)) adjacency[b].push(a);
+  }
+
+  // Bogen jedes Rings: OFFENE Kette (kein Schluss zwischen den Enden).
+  for (let k = n; k >= 1; k--) {
+    const ringPts = ringsById[k];
+    for (let i = 0; i < ringPts.length - 1; i++) addEdge(ringPts[i].id, ringPts[i + 1].id);
+  }
+
+  // Radiale Speichen: winkelmäßig nächstgelegener Punkt im inneren Ring
+  // (erzeugt für die Bogen-Enden automatisch die gerade Grundseite).
+  for (let k = n; k >= 2; k--) {
+    const outer = ringsById[k];
+    const inner = ringsById[k - 1];
+    outer.forEach(p => {
+      let best = null, bestDiff = Infinity;
+      inner.forEach(q => {
+        const diff = Math.abs(p.angle - q.angle);
+        if (diff < bestDiff) { bestDiff = diff; best = q; }
+      });
+      addEdge(p.id, best.id);
+    });
+  }
+  if (n >= 1) {
+    ringsById[1].forEach(p => addEdge(p.id, centerId));
+  }
+
+  const maxDim = 2 * n + 1;
+  const style = {
+    rActive: clamp(9 - (maxDim - 3) * 0.85, 2.6, 9),
+    rInactive: clamp(6 - (maxDim - 3) * 0.55, 1.8, 6),
+    font: clamp(9 - (maxDim - 3) * 0.7, 3.6, 9),
+    stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
+  };
+
+  return { shape: 'semicircle', n, cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
+}

@@ -19,7 +19,7 @@
     <div class="page-header">
       <div>
         <h1>Glyphengenerator</h1>
-        <p>Zufällig verbundene Punkte formen einzigartige Glyphen — jede Strecke wird dabei nur einmal genutzt.</p>
+        <p>Zufällig verbundene Punkte formen einzigartige Glyphen. Jede Strecke wird dabei nur einmal genutzt.</p>
       </div>
       <button class="icon-btn" id="themeToggle" aria-label="Zu Dark Mode wechseln">
         <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -47,14 +47,21 @@
           <div class="form-group">
             <label class="form-label" for="gridSelect">Raster</label>
             <select class="form-select" id="gridSelect">
-              <option value="custom">Rechteck</option>
-              <option value="hexagon">Hexagon</option>
               <option value="circle">Kreis</option>
+              <option value="semicircle">Halbkreis</option>
               <option value="ellipse">Ellipse</option>
               <option value="triangle">Dreieck</option>
+              <option value="custom">Rechteck</option>
               <option value="rhombus">Raute</option>
               <option value="trapezoid">Trapez</option>
               <option value="parallelogram">Parallelogramm</option>
+              <option value="kite">Drachenraute</option>
+              <option value="pentagon">Fünfeck</option>
+              <option value="hexagon">Hexagon</option>
+              <option value="heptagon">Siebeneck</option>
+              <option value="octagon">Achteck</option>
+              <option value="nonagon">Neuneck</option>
+              <option value="decagon">Zehneck</option>              
             </select>
           </div>
 
@@ -201,6 +208,79 @@
             <p class="form-error" id="parallelogramGridError">Seitenlänge und Höhe müssen mindestens 1 betragen.</p>
           </div>
 
+          <div class="form-group" id="kiteGridGroup" style="display:none">
+            <label class="form-label">Drachentrapez-Größe</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="kiteWidth">Breite (Mitte)</label>
+                <input class="form-input" type="number" id="kiteWidth" min="1" step="2" value="5">
+              </div>
+              <span class="custom-grid-x">×</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="kiteTop">Oben</label>
+                <input class="form-input" type="number" id="kiteTop" min="1" value="2">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:var(--space-3);margin-bottom:0">
+              <label class="form-hint" for="kiteBottom">Unten</label>
+              <input class="form-input" type="number" id="kiteBottom" min="1" value="4">
+            </div>
+            <p class="form-hint">Verallgemeinerte Raute: die Reihenbreite wächst von 1 Punkt über „Oben" Reihen bis zur
+              „Breite" an und nimmt danach über „Unten" Reihen wieder auf 1 Punkt ab. Bei ungleichem Oben/Unten liegt die
+              breiteste Reihe nicht mittig — es entsteht ein drachenartiges, asymmetrisches Profil. Gleiche Werte ergeben
+              eine Raute.</p>
+            <p class="form-error" id="kiteGridError">Breite muss ungerade und mindestens 1 sein, Oben und Unten
+              mindestens 1.</p>
+          </div>
+
+          <div class="form-group" id="pentagonGridGroup" style="display:none">
+            <label class="form-label" for="pentagonRings">Fünfeck-Ringe</label>
+            <input class="form-input" type="number" id="pentagonRings" min="1" value="3">
+            <p class="form-hint">Ring k besteht aus 5 Punkten auf den Ecken eines regelmäßigen Fünfecks mit Radius ∝ k,
+              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
+            <p class="form-error" id="pentagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="heptagonGridGroup" style="display:none">
+            <label class="form-label" for="heptagonRings">Siebeneck-Ringe</label>
+            <input class="form-input" type="number" id="heptagonRings" min="1" value="3">
+            <p class="form-hint">Ring k besteht aus 7 Punkten auf den Ecken eines regelmäßigen Siebenecks mit Radius ∝ k,
+              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
+            <p class="form-error" id="heptagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="octagonGridGroup" style="display:none">
+            <label class="form-label" for="octagonRings">Achteck-Ringe</label>
+            <input class="form-input" type="number" id="octagonRings" min="1" value="3">
+            <p class="form-hint">Ring k besteht aus 8 Punkten auf den Ecken eines regelmäßigen Achtecks mit Radius ∝ k,
+              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
+            <p class="form-error" id="octagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="nonagonGridGroup" style="display:none">
+            <label class="form-label" for="nonagonRings">Neuneck-Ringe</label>
+            <input class="form-input" type="number" id="nonagonRings" min="1" value="3">
+            <p class="form-hint">Ring k besteht aus 9 Punkten auf den Ecken eines regelmäßigen Neunecks mit Radius ∝ k,
+              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
+            <p class="form-error" id="nonagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="decagonGridGroup" style="display:none">
+            <label class="form-label" for="decagonRings">Zehneck-Ringe</label>
+            <input class="form-input" type="number" id="decagonRings" min="1" value="3">
+            <p class="form-hint">Ring k besteht aus 10 Punkten auf den Ecken eines regelmäßigen Zehnecks mit Radius ∝ k,
+              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
+            <p class="form-error" id="decagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="semicircleGridGroup" style="display:none">
+            <label class="form-label" for="semicircleRings">Halbkreis-Ringe</label>
+            <input class="form-input" type="number" id="semicircleRings" min="1" value="3">
+            <p class="form-hint">Wie beim Kreis, aber auf einen 180°-Bogen beschränkt (Kuppel oben, gerade Grundseite
+              unten). Ring k hat 2×k+1 Punkte statt 4×k.</p>
+            <p class="form-error" id="semicircleGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
           <div class="form-group">
             <label class="checkbox-row" for="forbiddenEnabled">
               <input type="checkbox" id="forbiddenEnabled">
@@ -259,7 +339,7 @@
               <span class="custom-grid-x">/</span>
               <div class="custom-grid-field">
                 <label class="form-hint" for="multiElementCount">Anzahl Elemente</label>
-                <input class="form-input" type="number" id="multiElementCount" min="1" max="5" step="1"
+                <input class="form-input" type="number" id="multiElementCount" min="2" max="5" step="1"
                   inputmode="numeric" value="2">
               </div>
             </div>
