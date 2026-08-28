@@ -14,6 +14,10 @@ export { buildTrapezoidGridDefinition } from './grid-trapezoid.js';
 export { buildParallelogramGridDefinition } from './grid-parallelogram.js';
 export { buildKiteGridDefinition } from './grid-kite.js';
 export {
-  buildPolygonGridDefinition, buildPentagonGridDefinition, buildHeptagonGridDefinition,
-  buildOctagonGridDefinition, buildNonagonGridDefinition, buildDecagonGridDefinition
+  buildPolygonRadialGridDefinition,
+  buildPentagonDiamondGridDefinition, buildPentagonSquareGridDefinition, buildPentagonRadialGridDefinition,
+  buildHeptagonRectangleGridDefinition, buildHeptagonRadialGridDefinition,
+  buildOctagonSquareGridDefinition, buildOctagonRadialGridDefinition,
+  buildNonagonSquareGridDefinition, buildNonagonRadialGridDefinition,
+  buildDecagonRectangleGridDefinition, buildDecagonRadialGridDefinition
 } from './grid-polygon.js';

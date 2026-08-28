@@ -12,16 +12,23 @@ import {
   circleRings, ellipseWidth, ellipseHeight,
   triangleWidth, triangleHeight, rhombusWidth, rhombusHeight,
   trapezoidTop, trapezoidHeight, parallelogramSide, parallelogramHeight, parallelogramOffset,
-  kiteWidth, kiteTop, kiteBottom,
-  pentagonRings, heptagonRings, octagonRings, nonagonRings, decagonRings, semicircleRings,
+  kiteHeight,
+  pentagonMode, pentagonDiamondSize, pentagonRings, pentagonSquareSize,
+  heptagonMode, heptagonRings, heptagonWidth, heptagonHeight,
+  octagonMode, octagonRings, octagonSize,
+  nonagonMode, nonagonRings, nonagonSize,
+  decagonMode, decagonRings, decagonWidth, decagonHeight,
+  semicircleRings,
   forbiddenEnabled, forbiddenInput,
   avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
   stepsInput, multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints,
-  generateBtn, enumerateBtn, regenerateBtn, exportSvgBtn, exportPngBtn, outputCanvas
+  generateBtn, enumerateBtn, exportSvgBtn, exportPngBtn, outputCanvas
 } from './dom-refs.js';
 import {
   runGeneration, runEnumeration, rebuildGridAndRefresh, refreshForbiddenOnly,
   handleGridSelectChange, handleForbiddenEnabledChange, handleTreeModeChange, handleMultiModeChange,
+  handlePentagonModeChange, handleHeptagonModeChange, handleOctagonModeChange,
+  handleNonagonModeChange, handleDecagonModeChange,
   updateMultiFieldBoundAttributes, updateMultiFieldBounds, refreshMultiReadiness, getExportOptions
 } from './ui-controllers.js';
 
@@ -63,7 +70,6 @@ outputCanvas.addEventListener('click', (e) => {
 
 generateBtn.addEventListener('click', runGeneration);
 enumerateBtn.addEventListener('click', runEnumeration);
-regenerateBtn.addEventListener('click', runGeneration);
 gridSelect.addEventListener('change', handleGridSelectChange);
 customWidth.addEventListener('change', rebuildGridAndRefresh);
 customHeight.addEventListener('change', rebuildGridAndRefresh);
@@ -97,14 +103,33 @@ parallelogramOffset.addEventListener('change', rebuildGridAndRefresh);
 parallelogramSide.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramOffset.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
-// Drachentrapez, die fünf regelmäßigen Vielecke und Halbkreis: als
-// Schleife statt Einzelzeilen verdrahtet (weniger Fehlerrisiko bei
-// neun neuen, strukturell identischen Feldern).
-[kiteWidth, kiteTop, kiteBottom, pentagonRings, heptagonRings, octagonRings, nonagonRings, decagonRings, semicircleRings]
-  .forEach(el => {
-    el.addEventListener('change', rebuildGridAndRefresh);
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
-  });
+// Drachenviereck und Halbkreis: einfache Einzelfelder.
+[kiteHeight, semicircleRings].forEach(el => {
+  el.addEventListener('change', rebuildGridAndRefresh);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+});
+
+// Die fünf regelmäßigen Vielecke: je ein Modus-Select (löst beim Wechsel
+// die passende Unterfeldgruppen-Sichtbarkeit + Rebuild aus) plus die
+// Unterfelder selbst (lösen nur einen Rebuild aus, ohne Sichtbarkeit zu
+// ändern — sie sind ja bereits die gerade sichtbare Gruppe).
+pentagonMode.addEventListener('change', handlePentagonModeChange);
+heptagonMode.addEventListener('change', handleHeptagonModeChange);
+octagonMode.addEventListener('change', handleOctagonModeChange);
+nonagonMode.addEventListener('change', handleNonagonModeChange);
+decagonMode.addEventListener('change', handleDecagonModeChange);
+
+[
+  pentagonDiamondSize, pentagonRings, pentagonSquareSize,
+  heptagonRings, heptagonWidth, heptagonHeight,
+  octagonRings, octagonSize,
+  nonagonRings, nonagonSize,
+  decagonRings, decagonWidth, decagonHeight
+].forEach(el => {
+  el.addEventListener('change', rebuildGridAndRefresh);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+});
+
 forbiddenEnabled.addEventListener('change', handleForbiddenEnabledChange);
 forbiddenInput.addEventListener('change', refreshForbiddenOnly);
 forbiddenInput.addEventListener('keydown', e => { if (e.key === 'Enter') refreshForbiddenOnly(); });
@@ -126,7 +151,6 @@ stepsInput.addEventListener('keydown', e => { if (e.key === 'Enter') runGenerati
   el.addEventListener('keydown', e => { if (e.key === 'Enter') runGeneration(); });
 });
 
-regenerateBtn.dataset.armed = '0';
 // Synchronisiert einmalig die sichtbare Feldgruppe mit der tatsächlich
 // ausgewählten Raster-Option (jetzt standardmäßig "Rechteck") und stößt
 // darüber den ersten Rebuild + refreshMaxSteps() an — robuster als eine

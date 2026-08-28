@@ -28,6 +28,10 @@ export const ENUM_AUTO_LOAD_SOFT_LIMIT = 3000;    // ab hier: manueller Button s
 export const CUSTOM_MIN_DIM = 2;
 export const CUSTOM_MAX_DIM = 12;
 
+// Das Drachenviereck wächst quadratisch mit h (Gesamtpunktzahl ≈ h²),
+// daher eine niedrigere Obergrenze als bei linear wachsenden Rastern.
+export const KITE_MAX_H = 8;
+
 // Für den Konzentrations-Constraint bei der Kanten-/Pfadgenerierung.
 export const CONCENTRATION_RADIUS_FACTOR = 1.55;
 export const CONCENTRATION_THRESHOLD = 0.55;

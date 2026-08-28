@@ -97,12 +97,12 @@ const DIMS_LABEL = {
   rhombus: g => `raute${g.width}x${g.height}`,
   trapezoid: g => `trapez${g.top}x${g.height}`,
   parallelogram: g => `parallelogramm${g.sideLength}x${g.height}_versatz${g.offset}`,
-  kite: g => `drachentrapez${g.width}_oben${g.oben}_unten${g.unten}`,
-  pentagon: g => `fuenfeck${g.n}`,
-  heptagon: g => `siebeneck${g.n}`,
-  octagon: g => `achteck${g.n}`,
-  nonagon: g => `neuneck${g.n}`,
-  decagon: g => `zehneck${g.n}`,
+  kite: g => `drachenviereck_h${g.h}`,
+  pentagon: g => g.mode === 'radial' ? `fuenfeck_radial${g.n}` : `fuenfeck_${g.mode}${g.size}`,
+  heptagon: g => g.mode === 'radial' ? `siebeneck_radial${g.n}` : `siebeneck_rechteck${g.width}x${g.height}`,
+  octagon: g => g.mode === 'radial' ? `achteck_radial${g.n}` : `achteck_quadrat${g.size}`,
+  nonagon: g => g.mode === 'radial' ? `neuneck_radial${g.n}` : `neuneck_quadrat${g.size}`,
+  decagon: g => g.mode === 'radial' ? `zehneck_radial${g.n}` : `zehneck_rechteck${g.width}x${g.height}`,
   semicircle: g => `halbkreis${g.n}`
 };
 

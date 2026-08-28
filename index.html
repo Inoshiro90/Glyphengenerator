@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Glyphengenerator</title>
+  <title>Glyphengenerator — Warm Design System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap"
@@ -19,7 +19,7 @@
     <div class="page-header">
       <div>
         <h1>Glyphengenerator</h1>
-        <p>Zufällig verbundene Punkte formen einzigartige Glyphen. Jede Strecke wird dabei nur einmal genutzt.</p>
+        <p>Zufällig verbundene Punkte formen einzigartige Glyphen — jede Strecke wird dabei nur einmal genutzt.</p>
       </div>
       <button class="icon-btn" id="themeToggle" aria-label="Zu Dark Mode wechseln">
         <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -47,21 +47,21 @@
           <div class="form-group">
             <label class="form-label" for="gridSelect">Raster</label>
             <select class="form-select" id="gridSelect">
+              <option value="custom">Rechteck</option>
+              <option value="hexagon">Hexagon</option>
               <option value="circle">Kreis</option>
-              <option value="semicircle">Halbkreis</option>
               <option value="ellipse">Ellipse</option>
               <option value="triangle">Dreieck</option>
-              <option value="custom">Rechteck</option>
               <option value="rhombus">Raute</option>
               <option value="trapezoid">Trapez</option>
               <option value="parallelogram">Parallelogramm</option>
-              <option value="kite">Drachenraute</option>
+              <option value="kite">Drachenviereck</option>
               <option value="pentagon">Fünfeck</option>
-              <option value="hexagon">Hexagon</option>
               <option value="heptagon">Siebeneck</option>
               <option value="octagon">Achteck</option>
               <option value="nonagon">Neuneck</option>
-              <option value="decagon">Zehneck</option>              
+              <option value="decagon">Zehneck</option>
+              <option value="semicircle">Halbkreis</option>
             </select>
           </div>
 
@@ -157,7 +157,7 @@
               <span class="custom-grid-x">×</span>
               <div class="custom-grid-field">
                 <label class="form-hint" for="rhombusHeight">Höhe</label>
-                <input class="form-input" type="number" id="rhombusHeight" min="1" value="5">
+                <input class="form-input" type="number" id="rhombusHeight" min="1" step="2" value="5">
               </div>
             </div>
             <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis zur
@@ -209,68 +209,138 @@
           </div>
 
           <div class="form-group" id="kiteGridGroup" style="display:none">
-            <label class="form-label">Drachentrapez-Größe</label>
-            <div class="custom-grid-row">
-              <div class="custom-grid-field">
-                <label class="form-hint" for="kiteWidth">Breite (Mitte)</label>
-                <input class="form-input" type="number" id="kiteWidth" min="1" step="2" value="5">
-              </div>
-              <span class="custom-grid-x">×</span>
-              <div class="custom-grid-field">
-                <label class="form-hint" for="kiteTop">Oben</label>
-                <input class="form-input" type="number" id="kiteTop" min="1" value="2">
-              </div>
-            </div>
-            <div class="form-group" style="margin-top:var(--space-3);margin-bottom:0">
-              <label class="form-hint" for="kiteBottom">Unten</label>
-              <input class="form-input" type="number" id="kiteBottom" min="1" value="4">
-            </div>
-            <p class="form-hint">Verallgemeinerte Raute: die Reihenbreite wächst von 1 Punkt über „Oben" Reihen bis zur
-              „Breite" an und nimmt danach über „Unten" Reihen wieder auf 1 Punkt ab. Bei ungleichem Oben/Unten liegt die
-              breiteste Reihe nicht mittig — es entsteht ein drachenartiges, asymmetrisches Profil. Gleiche Werte ergeben
-              eine Raute.</p>
-            <p class="form-error" id="kiteGridError">Breite muss ungerade und mindestens 1 sein, Oben und Unten
-              mindestens 1.</p>
+            <label class="form-label" for="kiteHeight">Höhe nach oben (h, inkl. Mittelpunkt)</label>
+            <input class="form-input" type="number" id="kiteHeight" min="1" max="8" value="3">
+            <p class="form-hint">Die Mittelreihe ist 2h+1 breit. Von der Mittelreihe abwärts verjüngt sich das Raster
+              über insgesamt h(h+1)/2 Reihen in abnehmend wiederholten Stufen — dadurch entsteht das drachenartige,
+              nach unten hin länger auslaufende Profil.</p>
+            <p class="form-error" id="kiteGridError">h muss zwischen 1 und 8 liegen.</p>
           </div>
 
           <div class="form-group" id="pentagonGridGroup" style="display:none">
-            <label class="form-label" for="pentagonRings">Fünfeck-Ringe</label>
-            <input class="form-input" type="number" id="pentagonRings" min="1" value="3">
-            <p class="form-hint">Ring k besteht aus 5 Punkten auf den Ecken eines regelmäßigen Fünfecks mit Radius ∝ k,
-              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
-            <p class="form-error" id="pentagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+            <label class="form-label" for="pentagonMode">Fünfeck-Modus</label>
+            <select class="form-input" id="pentagonMode" style="margin-bottom:var(--space-3)">
+              <option value="diamond">Diamant</option>
+              <option value="radial">Radial</option>
+              <option value="square">Quadrat</option>
+            </select>
+            <div id="pentagonDiamondFields">
+              <label class="form-hint" for="pentagonDiamondSize">Größe</label>
+              <input class="form-input" type="number" id="pentagonDiamondSize" min="3" step="2" value="5">
+              <p class="form-hint">Raute, deren untere Spitze abgeschnitten ist (5 statt 4 Seiten).</p>
+            </div>
+            <div id="pentagonRadialFields" style="display:none">
+              <label class="form-hint" for="pentagonRings">Ringe</label>
+              <input class="form-input" type="number" id="pentagonRings" min="1" value="3">
+              <p class="form-hint">Ring k hat 5×k Punkte, wie beim Kreis, aber mit 5 statt 4 Punkten pro Ring und
+                Ringindex.</p>
+            </div>
+            <div id="pentagonSquareFields" style="display:none">
+              <label class="form-hint" for="pentagonSquareSize">Größe</label>
+              <input class="form-input" type="number" id="pentagonSquareSize" min="3" step="2" value="5">
+              <p class="form-hint">Wie Diamant, passt aber exakt in ein Größe×Größe-Quadrat.</p>
+            </div>
+            <p class="form-error" id="pentagonGridError"></p>
           </div>
 
           <div class="form-group" id="heptagonGridGroup" style="display:none">
-            <label class="form-label" for="heptagonRings">Siebeneck-Ringe</label>
-            <input class="form-input" type="number" id="heptagonRings" min="1" value="3">
-            <p class="form-hint">Ring k besteht aus 7 Punkten auf den Ecken eines regelmäßigen Siebenecks mit Radius ∝ k,
-              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
-            <p class="form-error" id="heptagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+            <label class="form-label" for="heptagonMode">Siebeneck-Modus</label>
+            <select class="form-input" id="heptagonMode" style="margin-bottom:var(--space-3)">
+              <option value="radial">Radial</option>
+              <option value="rectangle">Rechteck</option>
+            </select>
+            <div id="heptagonRadialFields">
+              <label class="form-hint" for="heptagonRings">Ringe</label>
+              <input class="form-input" type="number" id="heptagonRings" min="1" value="3">
+              <p class="form-hint">Ring k hat 7×k Punkte, wie beim Kreis, aber mit 7 statt 4 Punkten pro Ring und
+                Ringindex.</p>
+            </div>
+            <div id="heptagonRectangleFields" style="display:none">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="heptagonWidth">Breite</label>
+                  <input class="form-input" type="number" id="heptagonWidth" min="3" value="5">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="heptagonHeight">Höhe</label>
+                  <input class="form-input" type="number" id="heptagonHeight" min="2" value="4">
+                </div>
+              </div>
+              <p class="form-hint">Spitze oben, volle Breite über die mittleren Reihen, unten eine um einen
+                Taper-Schritt schmalere flache Kante.</p>
+            </div>
+            <p class="form-error" id="heptagonGridError"></p>
           </div>
 
           <div class="form-group" id="octagonGridGroup" style="display:none">
-            <label class="form-label" for="octagonRings">Achteck-Ringe</label>
-            <input class="form-input" type="number" id="octagonRings" min="1" value="3">
-            <p class="form-hint">Ring k besteht aus 8 Punkten auf den Ecken eines regelmäßigen Achtecks mit Radius ∝ k,
-              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
-            <p class="form-error" id="octagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+            <label class="form-label" for="octagonMode">Achteck-Modus</label>
+            <select class="form-input" id="octagonMode" style="margin-bottom:var(--space-3)">
+              <option value="radial">Radial</option>
+              <option value="square">Quadrat</option>
+            </select>
+            <div id="octagonRadialFields">
+              <label class="form-hint" for="octagonRings">Ringe</label>
+              <input class="form-input" type="number" id="octagonRings" min="1" value="3">
+              <p class="form-hint">Ring k hat 8×k Punkte, wie beim Kreis, aber mit 8 statt 4 Punkten pro Ring und
+                Ringindex.</p>
+            </div>
+            <div id="octagonSquareFields" style="display:none">
+              <label class="form-hint" for="octagonSize">Größe</label>
+              <input class="form-input" type="number" id="octagonSize" min="3" value="4">
+              <p class="form-hint">Quadrat mit allen vier abgeschnittenen Ecken (klassisches Achteck).</p>
+            </div>
+            <p class="form-error" id="octagonGridError"></p>
           </div>
 
           <div class="form-group" id="nonagonGridGroup" style="display:none">
-            <label class="form-label" for="nonagonRings">Neuneck-Ringe</label>
-            <input class="form-input" type="number" id="nonagonRings" min="1" value="3">
-            <p class="form-hint">Ring k besteht aus 9 Punkten auf den Ecken eines regelmäßigen Neunecks mit Radius ∝ k,
-              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
-            <p class="form-error" id="nonagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+            <label class="form-label" for="nonagonMode">Neuneck-Modus</label>
+            <select class="form-input" id="nonagonMode" style="margin-bottom:var(--space-3)">
+              <option value="radial">Radial</option>
+              <option value="square">Quadrat</option>
+            </select>
+            <div id="nonagonRadialFields">
+              <label class="form-hint" for="nonagonRings">Ringe</label>
+              <input class="form-input" type="number" id="nonagonRings" min="1" value="3">
+              <p class="form-hint">Ring k hat 9×k Punkte, wie beim Kreis, aber mit 9 statt 4 Punkten pro Ring und
+                Ringindex.</p>
+            </div>
+            <div id="nonagonSquareFields" style="display:none">
+              <label class="form-hint" for="nonagonSize">Größe (ungerade)</label>
+              <input class="form-input" type="number" id="nonagonSize" min="5" step="2" value="7">
+              <p class="form-hint">Spitze oben, symmetrische Verbreiterung zu einer mittigen Scheitelreihe auf voller
+                Breite, dann symmetrisch zurück und eine letzte, etwas breitere Abschlussreihe unten.</p>
+            </div>
+            <p class="form-error" id="nonagonGridError"></p>
           </div>
 
           <div class="form-group" id="decagonGridGroup" style="display:none">
-            <label class="form-label" for="decagonRings">Zehneck-Ringe</label>
-            <input class="form-input" type="number" id="decagonRings" min="1" value="3">
-            <p class="form-hint">Ring k besteht aus 10 Punkten auf den Ecken eines regelmäßigen Zehnecks mit Radius ∝ k,
-              verbunden zu einem Umriss sowie radial mit dem nächst-inneren Ring.</p>
-            <p class="form-error" id="decagonGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+            <label class="form-label" for="decagonMode">Zehneck-Modus</label>
+            <select class="form-input" id="decagonMode" style="margin-bottom:var(--space-3)">
+              <option value="radial">Radial</option>
+              <option value="rectangle">Rechteck</option>
+            </select>
+            <div id="decagonRadialFields">
+              <label class="form-hint" for="decagonRings">Ringe</label>
+              <input class="form-input" type="number" id="decagonRings" min="1" value="3">
+              <p class="form-hint">Ring k hat 10×k Punkte, wie beim Kreis, aber mit 10 statt 4 Punkten pro Ring und
+                Ringindex.</p>
+            </div>
+            <div id="decagonRectangleFields" style="display:none">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="decagonWidth">Breite</label>
+                  <input class="form-input" type="number" id="decagonWidth" min="5" value="7">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="decagonHeight">Höhe (ungerade)</label>
+                  <input class="form-input" type="number" id="decagonHeight" min="3" step="2" value="5">
+                </div>
+              </div>
+              <p class="form-hint">Wie beim Neuneck, aber mit unabhängiger Breite und Höhe statt eines Quadrats.</p>
+            </div>
+            <p class="form-error" id="decagonGridError"></p>
           </div>
 
           <div class="form-group" id="semicircleGridGroup" style="display:none">
@@ -296,28 +366,31 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" style="margin-bottom:var(--space-2)">Erweiterte Optionen</label>
-
-            <label class="checkbox-row" for="avoidCrossing">
-              <input type="checkbox" id="avoidCrossing">
-              <span class="form-label" style="margin:0">Kreuzungen vermeiden</span>
-            </label>
-            <label class="checkbox-row" for="avoidPointReuse">
-              <input type="checkbox" id="avoidPointReuse">
-              <span class="form-label" style="margin:0">Punktbelastung vermeiden</span>
-            </label>
-            <label class="checkbox-row" for="avoidConcentration">
-              <input type="checkbox" id="avoidConcentration">
-              <span class="form-label" style="margin:0">Konzentration vermeiden</span>
-            </label>
-            <label class="checkbox-row" for="treeMode">
-              <input type="checkbox" id="treeMode">
-              <span class="form-label" style="margin:0">Ast-Generierung</span>
-            </label>
-            <label class="checkbox-row" for="multiMode" style="margin-bottom:0">
-              <input type="checkbox" id="multiMode">
-              <span class="form-label" style="margin:0">Mehrere Elemente</span>
-            </label>
+            <details class="collapsible-group">
+              <summary>Erweiterte Optionen</summary>
+              <div class="collapsible-body">
+                <label class="checkbox-row" for="avoidCrossing">
+                  <input type="checkbox" id="avoidCrossing">
+                  <span class="form-label" style="margin:0">Kreuzungen vermeiden</span>
+                </label>
+                <label class="checkbox-row" for="avoidPointReuse">
+                  <input type="checkbox" id="avoidPointReuse">
+                  <span class="form-label" style="margin:0">Punktbelastung vermeiden</span>
+                </label>
+                <label class="checkbox-row" for="avoidConcentration">
+                  <input type="checkbox" id="avoidConcentration">
+                  <span class="form-label" style="margin:0">Konzentration vermeiden</span>
+                </label>
+                <label class="checkbox-row" for="treeMode">
+                  <input type="checkbox" id="treeMode">
+                  <span class="form-label" style="margin:0">Ast-Generierung</span>
+                </label>
+                <label class="checkbox-row" for="multiMode" style="margin-bottom:0">
+                  <input type="checkbox" id="multiMode">
+                  <span class="form-label" style="margin:0">Mehrere Elemente</span>
+                </label>
+              </div>
+            </details>
           </div>
 
           <div class="form-group" id="stepsGroup">
@@ -365,31 +438,35 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" style="margin-bottom:var(--space-2)">Export</label>
-            <label class="checkbox-row" for="exportShowNumbers">
-              <input type="checkbox" id="exportShowNumbers" checked>
-              <span class="form-label" style="margin:0">Zahlen</span>
-            </label>
-            <label class="checkbox-row" for="exportShowPoints">
-              <input type="checkbox" id="exportShowPoints" checked>
-              <span class="form-label" style="margin:0">Punkte</span>
-            </label>
-            <label class="checkbox-row" for="exportHollowPoints">
-              <input type="checkbox" id="exportHollowPoints">
-              <span class="form-label" style="margin:0">Punkte hohl</span>
-            </label>
-            <label class="checkbox-row" for="exportShowStartRing">
-              <input type="checkbox" id="exportShowStartRing" checked>
-              <span class="form-label" style="margin:0">Startmarkierung</span>
-            </label>
-            <label class="checkbox-row" for="exportShowUnusedPoints">
-              <input type="checkbox" id="exportShowUnusedPoints" checked>
-              <span class="form-label" style="margin:0">Unbenutzte Punkte</span>
-            </label>
-            <label class="checkbox-row" for="exportColor" style="margin-bottom:0">
-              <input type="color" id="exportColor" value="#0075de">
-              <span class="form-label" style="margin:0">Farbe</span>
-            </label>
+            <details class="collapsible-group">
+              <summary>Export</summary>
+              <div class="collapsible-body">
+                <label class="checkbox-row" for="exportShowNumbers">
+                  <input type="checkbox" id="exportShowNumbers" checked>
+                  <span class="form-label" style="margin:0">Zahlen</span>
+                </label>
+                <label class="checkbox-row" for="exportShowPoints">
+                  <input type="checkbox" id="exportShowPoints" checked>
+                  <span class="form-label" style="margin:0">Punkte</span>
+                </label>
+                <label class="checkbox-row" for="exportHollowPoints">
+                  <input type="checkbox" id="exportHollowPoints">
+                  <span class="form-label" style="margin:0">Punkte hohl</span>
+                </label>
+                <label class="checkbox-row" for="exportShowStartRing">
+                  <input type="checkbox" id="exportShowStartRing" checked>
+                  <span class="form-label" style="margin:0">Startmarkierung</span>
+                </label>
+                <label class="checkbox-row" for="exportShowUnusedPoints">
+                  <input type="checkbox" id="exportShowUnusedPoints" checked>
+                  <span class="form-label" style="margin:0">Unbenutzte Punkte</span>
+                </label>
+                <label class="checkbox-row" for="exportColor" style="margin-bottom:0">
+                  <input type="color" id="exportColor" value="#0075de">
+                  <span class="form-label" style="margin:0">Farbe</span>
+                </label>
+              </div>
+            </details>
           </div>
 
           <div class="form-group" style="margin-bottom:0">
@@ -409,15 +486,6 @@
                 <rect x="14" y="14" width="7" height="7" rx="1"></rect>
               </svg>
               Alle Kombinationen
-            </button>
-            <button class="btn btn-ghost" id="regenerateBtn" disabled>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M23 4v6h-6"></path>
-                <path d="M1 20v-6h6"></path>
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
-              </svg>
-              Neu würfeln
             </button>
           </div>
         </div>

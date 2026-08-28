@@ -31,7 +31,8 @@
    ===================================================== */
 import { clamp } from '../config.js';
 
-export function buildRadialGridDefinition(shape, rx, ry) {
+export function buildRadialGridDefinition(shape, rx, ry, unitsPerRing) {
+  unitsPerRing = unitsPerRing || 4; // Kreis/Ellipse: 4 Punkte pro Ring und Ringindex
   const VIEW = 320;
   const margin = 40;
   const cx = VIEW / 2;
@@ -45,7 +46,7 @@ export function buildRadialGridDefinition(shape, rx, ry) {
   const ringsById = {}; // Ringindex k -> [{ id, angle }], für Nachbarschaftsaufbau
   let id = 1;
   for (let k = n; k >= 1; k--) {
-    const count = 4 * k;
+    const count = unitsPerRing * k;
     const ringPts = [];
     for (let i = 0; i < count; i++) {
       const angle = i * (2 * Math.PI / count); // 0 = 12 Uhr, wächst im Uhrzeigersinn

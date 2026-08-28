@@ -204,6 +204,33 @@ body {
   margin-bottom: var(--space-2);
 }
 
+.collapsible-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.collapsible-group summary::-webkit-details-marker { display: none; }
+.collapsible-group summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-secondary);
+  border-bottom: 2px solid var(--text-secondary);
+  transform: rotate(45deg);
+  transition: transform var(--dur-base) var(--ease-out);
+  flex-shrink: 0;
+}
+.collapsible-group[open] summary::after { transform: rotate(-135deg); }
+.collapsible-group summary { margin-bottom: var(--space-2); }
+.collapsible-group[open] summary { margin-bottom: var(--space-2); }
+.collapsible-group .collapsible-body > *:last-child { margin-bottom: 0; }
+
 .form-select,
 .form-input {
   width: 100%;

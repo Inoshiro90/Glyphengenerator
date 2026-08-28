@@ -189,7 +189,15 @@ export function generateElementTree(targetPoints, graph, grid, constraints, glob
 export function generateMultiElements(config, graph, grid, constraints) {
   const sizes = distributeSizes(config.total, config.count, config.min, config.max, constraints.multiBalanced);
   if (!sizes) return null;
-  const order = shuffle(sizes.slice());
+  // Größte Elemente ZUERST platzieren, nicht in zufälliger Reihenfolge:
+  // ein großes Element (eine lange, punktwiederholungsfreie Strecke)
+  // braucht viel zusammenhängenden Freiraum. Würde es zuletzt drankommen,
+  // hätten kleinere, bereits zuvor zufällig verstreute Elemente das
+  // Raster oft schon so fragmentiert, dass kein durchgehender Pfad mehr
+  // passt — das war die Hauptursache für "keine gültige Glyphe gefunden".
+  // Kleinere Elemente passen sich dagegen leicht in die Lücken ein, die
+  // ein großes Element übrig lässt.
+  const order = sizes.slice().sort((a, b) => b - a);
   const globalUsed = new Set();
   const elements = [];
   for (const size of order) {

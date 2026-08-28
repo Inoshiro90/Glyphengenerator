@@ -10,10 +10,11 @@
    interpoliert und gerundet — hier bezogen auf den Abstand jeder
    Reihe zur Mitte statt zur Spitze. Das garantiert wie beim
    Dreieck durchweg ungerade, zentrierte Reihenbreiten; deshalb
-   MUSS `width` ungerade sein. Bei gerader Höhe gibt es keine
-   exakte Mittelreihe — die beiden mittleren Reihen erreichen dann
-   ggf. nicht ganz die volle Breite (siehe H=4/W=5 → 1,3,3,1),
-   analog zum "Plateau"-Verhalten bei Dreieck/Hexagon.
+   MÜSSEN sowohl `width` als auch `height` ungerade sein — nur so
+   gibt es eine exakte Mittelreihe, die tatsächlich die volle
+   Breite erreicht (bei gerader Höhe gäbe es keine Mittelreihe,
+   und die beiden mittleren Reihen blieben unter der vollen Breite
+   stecken).
    ===================================================== */
 import { buildTaperedRowGridDefinition } from './grid-shared.js';
 
