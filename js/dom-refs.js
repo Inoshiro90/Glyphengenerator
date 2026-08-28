@@ -20,6 +20,7 @@ export const outputTitle    = document.getElementById('outputTitle');
 // ---------- Export-Buttons ----------
 export const exportSvgBtn = document.getElementById('exportSvgBtn');
 export const exportPngBtn = document.getElementById('exportPngBtn');
+export const exportRow    = document.querySelector('.export-row');
 
 // ---------- Export-Optionen ----------
 export const exportShowNumbers      = document.getElementById('exportShowNumbers');

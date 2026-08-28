@@ -25,6 +25,15 @@ export const ENUM_BATCH_TIME_SLICE_MS  = 35;      // max. ms Rechenzeit am Stüc
 export const ENUM_NODE_SAFETY_CEILING  = 3000000; // Notausstieg gegen pathologische Endlossuchen
 export const ENUM_AUTO_LOAD_SOFT_LIMIT = 3000;    // ab hier: manueller Button statt automatischem Nachladen
 
+// Obergrenze für den "Alle als ZIP"-Sammelexport: unabhängig von der
+// Anzeige (die per Lazy-Loading praktisch unbegrenzt viele Kombinationen
+// laden kann), damit ein versehentlicher Export bei riesigen Kombinations-
+// zahlen nicht zu einem faktisch endlosen Vorgang wird (besonders bei
+// PNG, wo jede Kombination einzeln rasterisiert werden muss).
+export const ZIP_EXPORT_MAX_COMBOS = 1500;
+export const ZIP_EXPORT_BATCH_SIZE = 40;          // Kombinationen pro Zeitscheibe beim Sammeln
+export const ZIP_EXPORT_PNG_CONCURRENCY = 6;      // parallele Rasterisierungen beim PNG-Export
+
 export const CUSTOM_MIN_DIM = 2;
 export const CUSTOM_MAX_DIM = 12;
 

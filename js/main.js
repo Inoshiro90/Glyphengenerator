@@ -6,6 +6,7 @@
 import { initTheme } from './theme.js';
 import { PNG_EXPORT_SIZE, PNG_EXPORT_SIZE_CARD } from './config.js';
 import { buildStandaloneSVG, downloadSVGString, downloadSVGAsPNG, buildExportFilename } from './export.js';
+import { exportAllCombosAsZip } from './bulk-export.js';
 import { state } from './state.js';
 import {
   gridSelect, customWidth, customHeight, hexDiag, hexVert,
@@ -29,7 +30,8 @@ import {
   handleGridSelectChange, handleForbiddenEnabledChange, handleTreeModeChange, handleMultiModeChange,
   handlePentagonModeChange, handleHeptagonModeChange, handleOctagonModeChange,
   handleNonagonModeChange, handleDecagonModeChange,
-  updateMultiFieldBoundAttributes, updateMultiFieldBounds, refreshMultiReadiness, getExportOptions
+  updateMultiFieldBoundAttributes, updateMultiFieldBounds, refreshMultiReadiness, getExportOptions,
+  getConstraints
 } from './ui-controllers.js';
 
 initTheme();
@@ -65,6 +67,53 @@ outputCanvas.addEventListener('click', (e) => {
     downloadSVGString(svgString, buildExportFilename(`kombination-${idx}`, 'svg', state.currentGrid, null, stepsInput.value));
   } else {
     downloadSVGAsPNG(svgString, buildExportFilename(`kombination-${idx}`, 'png', state.currentGrid, null, stepsInput.value), PNG_EXPORT_SIZE_CARD);
+  }
+});
+
+// Delegierter Klick-Handler für den ZIP-Sammelexport ("Alle als
+// SVG/PNG (ZIP)"), analog zu den Einzelkarten-Buttons oben — auch
+// diese Buttons werden bei jedem "Alle Kombinationen"-Aufruf neu
+// erzeugt (initCombosView() ersetzt outputCanvas.innerHTML), daher
+// Delegation statt direkter Listener.
+let zipExportInProgress = false;
+outputCanvas.addEventListener('click', async (e) => {
+  const btn = e.target.closest('#comboZipSvgBtn, #comboZipPngBtn');
+  if (!btn || zipExportInProgress) return;
+  const format = btn.id === 'comboZipPngBtn' ? 'png' : 'svg';
+  const statusEl = document.getElementById('comboZipStatus');
+  const svgBtn = document.getElementById('comboZipSvgBtn');
+  const pngBtn = document.getElementById('comboZipPngBtn');
+
+  const constraints = getConstraints();
+  const target = Number(stepsInput.value);
+  if (!Number.isInteger(target) || target < 1) return;
+
+  zipExportInProgress = true;
+  if (svgBtn) svgBtn.disabled = true;
+  if (pngBtn) pngBtn.disabled = true;
+
+  try {
+    const result = await exportAllCombosAsZip(format, constraints, target, (progress) => {
+      if (!statusEl) return;
+      if (progress.phase === 'collecting') {
+        statusEl.textContent = `Sammle Kombinationen… (${progress.count})`;
+      } else if (progress.phase === 'rendering') {
+        statusEl.textContent = `Erzeuge ${format.toUpperCase()}-Dateien… (${progress.count}/${progress.total})`;
+      } else if (progress.phase === 'zipping') {
+        statusEl.textContent = 'Packe ZIP-Datei…';
+      }
+    });
+    if (statusEl) {
+      statusEl.textContent = result.fileCount === 0
+        ? 'Keine Kombinationen gefunden.'
+        : `${result.fileCount} Datei${result.fileCount === 1 ? '' : 'en'} exportiert${result.truncated ? ' (Sicherheitslimit erreicht, nicht alle Kombinationen enthalten)' : ''}.`;
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = err.message || 'Export fehlgeschlagen.';
+  } finally {
+    zipExportInProgress = false;
+    if (svgBtn) svgBtn.disabled = false;
+    if (pngBtn) pngBtn.disabled = false;
   }
 });
 

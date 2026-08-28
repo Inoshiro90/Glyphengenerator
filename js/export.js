@@ -69,22 +69,33 @@ export function downloadSVGString(svgString, filename) {
   downloadBlob(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }), filename);
 }
 
+// Wandelt einen SVG-String in einen PNG-Blob um (Promise-basiert).
+// Wird sowohl vom Einzelexport (downloadSVGAsPNG) als auch vom
+// Sammel-ZIP-Export (bulk-export.js) genutzt.
+export function svgStringToPngBlob(svgString, pixelSize) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }));
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = pixelSize;
+      canvas.height = pixelSize;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, pixelSize, pixelSize);
+      canvas.toBlob(pngBlob => {
+        URL.revokeObjectURL(url);
+        if (pngBlob) resolve(pngBlob); else reject(new Error('toBlob lieferte kein Ergebnis'));
+      }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('SVG konnte nicht als Bild geladen werden')); };
+    img.src = url;
+  });
+}
+
 export function downloadSVGAsPNG(svgString, filename, pixelSize) {
-  const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }));
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = pixelSize;
-    canvas.height = pixelSize;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, pixelSize, pixelSize);
-    canvas.toBlob(pngBlob => {
-      if (pngBlob) downloadBlob(pngBlob, filename);
-      URL.revokeObjectURL(url);
-    }, 'image/png');
-  };
-  img.onerror = () => URL.revokeObjectURL(url);
-  img.src = url;
+  svgStringToPngBlob(svgString, pixelSize)
+    .then(pngBlob => downloadBlob(pngBlob, filename))
+    .catch(() => {}); // wie zuvor: Fehler beim Rasterisieren bleibt stumm
 }
 
 // Kurzlabel für den Dateinamen je Rasterform. Als Lookup-Tabelle statt
