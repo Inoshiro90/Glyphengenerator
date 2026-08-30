@@ -17,6 +17,7 @@
    stecken).
    ===================================================== */
 import { buildTaperedRowGridDefinition } from './grid-shared.js';
+import { buildStarRadialGridDefinition } from './grid-polygon.js';
 
 export function buildRhombusGridDefinition(width, height) {
   function rowWidth(r) {
@@ -30,4 +31,26 @@ export function buildRhombusGridDefinition(width, height) {
   return buildTaperedRowGridDefinition('rhombus', height, maxDim, rowWidth, {
     width, cols: width, rows: height
   });
+}
+
+/* -----------------------------------------------------
+   RAUTE — Radial
+   Eine Raute hat (unabhängig vom Seitenverhältnis) stets zwei
+   zueinander senkrechte Diagonalen — ihre vier Ecken liegen deshalb
+   IMMER exakt bei 0°/90°/180°/270°, nur die Länge der beiden
+   Diagonalen unterscheidet sich normalerweise (senkrecht: oben/
+   unten, waagerecht: links/rechts). Genau das bildet dieser Modus
+   ab: zwei unabhängige Streckungsfaktoren statt eines einzigen
+   Radius, sonst identisch zur Radial-Konstruktion der regelmäßigen
+   Vielecke (konzentrische, ähnliche Kopien + Speichen). Bei
+   widthRatio = heightRatio entsteht ein Quadrat (Sonderfall Raute).
+   ----------------------------------------------------- */
+export function buildRhombusRadialGridDefinition(widthRatio, heightRatio, rings) {
+  const corners = [
+    { angle: 0, radius: heightRatio },                  // oben
+    { angle: Math.PI / 2, radius: widthRatio },         // rechts
+    { angle: Math.PI, radius: heightRatio },            // unten
+    { angle: 3 * Math.PI / 2, radius: widthRatio }      // links
+  ];
+  return buildStarRadialGridDefinition('rhombus', corners, rings, { widthRatio, heightRatio });
 }

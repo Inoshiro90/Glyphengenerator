@@ -1,13 +1,22 @@
 /* =====================================================
    KREIS-/ELLIPSEN-RASTER
-   Ring 0 ist der Mittelpunkt. Ring k (k ≥ 1) hat 4k Punkte
-   (Ring1=4, Ring2=8, Ring3=12, …) — diese Regel bestimmt nur die
-   ANZAHL und NUMMERIERUNG pro Ring, nicht die Position. Die Punkte
-   werden auf echten konzentrischen Kreisen platziert (Polarkoor-
-   dinaten: Radius ∝ Ringindex, gleichmäßig verteilter Winkel),
-   nicht auf einem quadratischen Gitter — sonst entstünde ein
-   Diamant statt eines Kreises. Nummerierung: äußerster Ring
-   zuerst, im Uhrzeigersinn ab 12 Uhr, Zentrum zuletzt.
+   Ring 0 ist der Mittelpunkt. Ring k (k ≥ 1) hat unitsPerRing×k Punkte
+   (Standard-Auflösung 4: Ring1=4, Ring2=8, Ring3=12, …) — diese Regel
+   bestimmt nur die ANZAHL und NUMMERIERUNG pro Ring, nicht die
+   Position. Die Punkte werden auf echten konzentrischen Kreisen
+   platziert (Polarkoordinaten: Radius ∝ Ringindex, gleichmäßig
+   verteilter Winkel), nicht auf einem quadratischen Gitter — sonst
+   entstünde ein Diamant statt eines Kreises. Nummerierung: äußerster
+   Ring zuerst, im Uhrzeigersinn ab 12 Uhr, Zentrum zuletzt.
+
+   Die Auflösung (unitsPerRing) ist bewusst konfigurierbar: bei der
+   Standard-Auflösung 4 wirkt der Kreis bei wenigen Ringen eher eckig/
+   quadratisch (Ring1 hat z. B. nur 4 Punkte, exakt wie beim
+   Quadrat-Radial); der "Radial"-Modus des Kreis-Dropdowns erlaubt eine
+   höhere Auflösung, damit auch bei wenigen Ringen ein deutlich
+   runderer Eindruck entsteht — die Konstruktion selbst (Ringe +
+   Speichen auf echten Kreisen) ist in beiden Fällen identisch, nur
+   die Punktdichte pro Ring unterscheidet sich.
 
    Da die Punkte nicht mehr auf einem Ganzzahl-Gitter liegen, kann
    die Nachbarschaft nicht mehr per King-Move (dx,dy) berechnet
@@ -21,10 +30,10 @@
 
    ELLIPSE ist dieselbe Konstruktion mit unabhängiger horizontaler
    (rx) und vertikaler (ry) Streckung statt eines einzelnen Radius:
-   Ringzahl/Topologie (welche Punkte existieren, 4k pro Ring,
-   Nachbarschaft) richten sich nach n=max(rx,ry); beim Umrechnen
-   von Winkel+Ringindex in Bildschirmkoordinaten wird x mit rx/n
-   und y mit ry/n skaliert. Für rx=ry ergibt sich exakt der Kreis
+   Ringzahl/Topologie (welche Punkte existieren, unitsPerRing pro
+   Ring, Nachbarschaft) richten sich nach n=max(rx,ry); beim
+   Umrechnen von Winkel+Ringindex in Bildschirmkoordinaten wird x mit
+   rx/n und y mit ry/n skaliert. Für rx=ry ergibt sich exakt der Kreis
    (Spezialfall) — die Winkel selbst werden VOR der Streckung
    berechnet, wodurch die radialen Speichen auch bei stark
    unterschiedlichem rx/ry sinnvoll bleiben.
@@ -106,11 +115,12 @@ export function buildRadialGridDefinition(shape, rx, ry, unitsPerRing) {
     stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
   };
 
-  return { shape, n, rx, ry, cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
+  return { shape, n, rx, ry, unitsPerRing, cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
 }
 
-export function buildCircleGridDefinition(n) {
-  return buildRadialGridDefinition('circle', n, n);
+export function buildCircleGridDefinition(n, resolution) {
+  const grid = buildRadialGridDefinition('circle', n, n, resolution);
+  return Object.assign(grid, { mode: resolution ? 'radial' : 'standard' });
 }
 
 export function buildEllipseGridDefinition(rx, ry) {
@@ -122,9 +132,13 @@ export function buildEllipseGridDefinition(rx, ry) {
    Dieselbe Ring-/Speichen-Konstruktion wie beim Kreis, aber auf einen
    180°-Bogen von 9 Uhr (−90°) über 12 Uhr (0°) bis 3 Uhr (+90°)
    beschränkt — die Kuppel wölbt sich nach oben, die flache Grundseite
-   liegt waagerecht auf halber Höhe. Ring k hat 2k+1 Punkte (statt 4k
-   beim Vollkreis, exakt die Hälfte plus die beiden Bogen-Enden), der
-   Ring-Zyklus bleibt eine OFFENE Kette (kein Kanten-Schluss zwischen
+   liegt waagerecht auf halber Höhe. Konfigurierbare "Auflösung"
+   (Standard 2): Ring k hat Auflösung×k+1 Punkte (statt Auflösung×k
+   beim Vollkreis, exakt die Hälfte plus die beiden Bogen-Enden) — bei
+   Standard-Auflösung 2 ergibt das die bisherigen 2k+1 Punkte. Die
+   Auflösung MUSS gerade sein, sonst läge kein Punkt exakt auf der
+   Kuppelspitze (Winkel 0°) und die Grundseiten-Symmetrie bräche.
+   Der Ring-Zyklus bleibt eine OFFENE Kette (kein Kanten-Schluss zwischen
    erstem und letztem Punkt — sonst entstünde eine Sehne quer durch den
    Kreis statt der geraden Grundseite). Die Grundseite selbst braucht
    keine eigene Sonderbehandlung: da die beiden Bogen-Enden jedes Rings
@@ -133,7 +147,8 @@ export function buildEllipseGridDefinition(rx, ry) {
    zwei gerade Ketten vom Zentrum bis zum äußersten Ring entlang dieser
    beiden Winkel — das IST die flache Grundseite.
    ===================================================== */
-export function buildSemicircleGridDefinition(n) {
+export function buildSemicircleGridDefinition(n, resolution) {
+  const res = resolution || 2;
   const VIEW = 320;
   const margin = 40;
   const cx = VIEW / 2;
@@ -149,10 +164,10 @@ export function buildSemicircleGridDefinition(n) {
   const ringsById = {};
   let id = 1;
   for (let k = n; k >= 1; k--) {
-    const count = 2 * k + 1;
+    const count = res * k + 1;
     const ringPts = [];
     for (let i = 0; i < count; i++) {
-      const angle = -Math.PI / 2 + i * (Math.PI / (2 * k)); // -90° .. +90°
+      const angle = -Math.PI / 2 + i * (Math.PI / (res * k)); // -90° .. +90°
       points[id] = { x: cx + unit * k * Math.sin(angle), y: cy - unit * k * Math.cos(angle) };
       ringPts.push({ id, angle });
       id++;
@@ -202,5 +217,5 @@ export function buildSemicircleGridDefinition(n) {
     stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
   };
 
-  return { shape: 'semicircle', n, cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
+  return { shape: 'semicircle', mode: resolution ? 'radial' : 'standard', resolution: res, n, cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
 }

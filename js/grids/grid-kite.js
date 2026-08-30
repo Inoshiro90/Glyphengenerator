@@ -18,6 +18,7 @@
    Beispiel h=3: Reihenbreiten 1,3,7,5,5,5,3,3,1 (9 Reihen).
    ===================================================== */
 import { buildTaperedRowGridDefinition } from './grid-shared.js';
+import { buildStarRadialGridDefinition } from './grid-polygon.js';
 
 export function buildKiteGridDefinition(h) {
   const width = 2 * h + 1;
@@ -34,4 +35,25 @@ export function buildKiteGridDefinition(h) {
   return buildTaperedRowGridDefinition('kite', height, maxDim, r => rowWidths[r], {
     h, width, cols: width, rows: height
   });
+}
+
+/* -----------------------------------------------------
+   DRACHENVIERECK — Radial
+   Ein Drachenviereck ist links/rechts symmetrisch (wie die Raute),
+   aber oben/unten UNSYMMETRISCH: eine "kurze" Spitze und ein
+   "langer Schwanz" auf derselben (senkrechten) Achse. Modelliert als
+   Sonderfall des allgemeinen Radial-Ansatzes mit vier individuellen
+   Eckfaktoren: oben und die beiden Seiten bleiben bei Radius 1, nur
+   der untere Punkt wird um tailRatio gestreckt (tailRatio > 1 ergibt
+   den charakteristischen langen Schwanz; tailRatio = 1 ergibt eine
+   Raute als Sonderfall).
+   ----------------------------------------------------- */
+export function buildKiteRadialGridDefinition(tailRatio, rings) {
+  const corners = [
+    { angle: 0, radius: 1 },                       // oben (Spitze)
+    { angle: Math.PI / 2, radius: 1 },              // rechts
+    { angle: Math.PI, radius: tailRatio },          // unten (Schwanz)
+    { angle: 3 * Math.PI / 2, radius: 1 }           // links
+  ];
+  return buildStarRadialGridDefinition('kite', corners, rings, { tailRatio });
 }

@@ -87,49 +87,91 @@
               <option value="nonagon">Neuneck</option>
               <option value="decagon">Zehneck</option>
               <option value="semicircle">Halbkreis</option>
+              <option value="star">Sternpolygon</option>
+              <option value="annulus">Kreisring</option>
+              <option value="compass">Kompassstern</option>
+              <option value="cross">Kreuz</option>
             </select>
           </div>
 
           <div class="form-group" id="customGridGroup">
-            <label class="form-label">Eigene Rastergröße</label>
-            <div class="custom-grid-row">
-              <div class="custom-grid-field">
-                <label class="form-hint" for="customWidth">Breite</label>
-                <input class="form-input" type="number" id="customWidth" min="2" value="3">
+            <label class="form-label" for="customMode">Rechteck-Modus</label>
+            <select class="form-input" id="customMode" style="margin-bottom:var(--space-3)">
+              <option value="grid">Raster</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="customStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="customWidth">Breite</label>
+                  <input class="form-input" type="number" id="customWidth" min="2" value="3">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="customHeight">Höhe</label>
+                  <input class="form-input" type="number" id="customHeight" min="2" value="3">
+                </div>
               </div>
-              <span class="custom-grid-x">×</span>
-              <div class="custom-grid-field">
-                <label class="form-hint" for="customHeight">Höhe</label>
-                <input class="form-input" type="number" id="customHeight" min="2" value="3">
-              </div>
+              <p class="form-hint">Mindestens 2 × 2. Beispiele: 2×3, 4×6, 7×3.</p>
             </div>
-            <p class="form-hint">Mindestens 2 × 2. Beispiele: 2×3, 4×6, 7×3.</p>
+            <div id="customRadialFields" style="display:none">
+              <label class="form-hint" for="customRings">Ringe</label>
+              <input class="form-input" type="number" id="customRings" min="1" value="3">
+              <p class="form-hint">Regelmäßiges Vieleck mit 4 Seiten (wie bei den Vielecken): Ring k hat 4×k Punkte,
+                erste Ecke oben — dadurch erscheint das Quadrat auf der Spitze stehend (Rautenform).</p>
+            </div>
             <p class="form-error" id="customGridError">Breite und Höhe müssen mindestens 2 betragen.</p>
           </div>
 
           <div class="form-group" id="hexGridGroup" style="display:none">
-            <label class="form-label">Hexagon-Größe</label>
-            <div class="custom-grid-row">
-              <div class="custom-grid-field">
-                <label class="form-hint" for="hexDiag">Schrägseiten</label>
-                <input class="form-input" type="number" id="hexDiag" min="1" value="3">
+            <label class="form-label" for="hexMode">Hexagon-Modus</label>
+            <select class="form-input" id="hexMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="hexStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="hexDiag">Schrägseiten</label>
+                  <input class="form-input" type="number" id="hexDiag" min="1" value="3">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="hexVert">Vertikalseiten</label>
+                  <input class="form-input" type="number" id="hexVert" min="1" value="3">
+                </div>
               </div>
-              <span class="custom-grid-x">×</span>
-              <div class="custom-grid-field">
-                <label class="form-hint" for="hexVert">Vertikalseiten</label>
-                <input class="form-input" type="number" id="hexVert" min="1" value="3">
-              </div>
+              <p class="form-hint">Schrägseiten bestimmen, wie stark sich die Reihen oben/unten verjüngen; Vertikalseiten
+                die Anzahl der Reihen auf voller Breite. Beispiel 3×3: Reihenbreiten 1, 3, 5, 5, 5, 3, 1.</p>
             </div>
-            <p class="form-hint">Schrägseiten bestimmen, wie stark sich die Reihen oben/unten verjüngen; Vertikalseiten
-              die Anzahl der Reihen auf voller Breite. Beispiel 3×3: Reihenbreiten 1, 3, 5, 5, 5, 3, 1.</p>
+            <div id="hexRadialFields" style="display:none">
+              <label class="form-hint" for="hexRings">Ringe</label>
+              <input class="form-input" type="number" id="hexRings" min="1" value="3">
+              <p class="form-hint">Regelmäßiges Sechseck: Ring k hat 6×k Punkte, wie beim Kreis, aber mit geraden Kanten
+                statt Kreisbogen.</p>
+            </div>
             <p class="form-error" id="hexGridError">Schrägseiten und Vertikalseiten müssen mindestens 1 betragen.</p>
           </div>
 
           <div class="form-group" id="circleGridGroup" style="display:none">
-            <label class="form-label" for="circleRings">Kreis-Ringe</label>
+            <label class="form-label" for="circleMode">Kreis-Modus</label>
+            <select class="form-input" id="circleMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <label class="form-hint" for="circleRings">Ringe</label>
             <input class="form-input" type="number" id="circleRings" min="1" value="3">
-            <p class="form-hint">Ring k (außer Zentrum) hat immer 4×k Punkte (Ring1=4, Ring2=8, Ring3=12, …), verteilt
-              im Uhrzeigersinn ab 12 Uhr. Mit 3 Ringen entstehen 25 Punkte.</p>
+            <div id="circleStandardHint">
+              <p class="form-hint">Ring k (außer Zentrum) hat immer 4×k Punkte (Ring1=4, Ring2=8, Ring3=12, …),
+                verteilt im Uhrzeigersinn ab 12 Uhr. Mit 3 Ringen entstehen 25 Punkte. Bei wenigen Ringen wirkt das
+                eher eckig/quadratisch als rund.</p>
+            </div>
+            <div id="circleRadialFields" style="display:none">
+              <label class="form-hint" for="circleResolution" style="margin-top:var(--space-3);display:block">Auflösung (Punkte je Ring-Stufe)</label>
+              <input class="form-input" type="number" id="circleResolution" min="3" max="24" value="8">
+              <p class="form-hint">Ring k hat Auflösung×k Punkte statt fest 4×k — mit höherer Auflösung wirkt der
+                Kreis auch bei wenigen Ringen deutlich runder statt eckig.</p>
+            </div>
             <p class="form-error" id="circleGridError">Die Ringzahl muss mindestens 1 betragen.</p>
           </div>
 
@@ -153,41 +195,76 @@
           </div>
 
           <div class="form-group" id="triangleGridGroup" style="display:none">
-            <label class="form-label">Dreieck-Größe</label>
-            <div class="custom-grid-row">
-              <div class="custom-grid-field">
-                <label class="form-hint" for="triangleWidth">Breite (unten)</label>
-                <input class="form-input" type="number" id="triangleWidth" min="1" step="2" value="5">
+            <label class="form-label" for="triangleMode">Dreieck-Modus</label>
+            <select class="form-input" id="triangleMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="triangleStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="triangleWidth">Breite (unten)</label>
+                  <input class="form-input" type="number" id="triangleWidth" min="1" step="2" value="5">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="triangleHeight">Höhe</label>
+                  <input class="form-input" type="number" id="triangleHeight" min="1" value="3">
+                </div>
               </div>
-              <span class="custom-grid-x">×</span>
-              <div class="custom-grid-field">
-                <label class="form-hint" for="triangleHeight">Höhe</label>
-                <input class="form-input" type="number" id="triangleHeight" min="1" value="3">
-              </div>
+              <p class="form-hint">Breite muss ungerade sein, damit jede Zwischenreihe exakt unter der Spitze zentriert
+                bleibt. Standardverhältnis Breite=2×Höhe−1 (z. B. 5×3) lässt jede Reihe um genau 2 Punkte wachsen; andere
+                Kombinationen werden gleichmäßig dazwischen interpoliert.</p>
             </div>
-            <p class="form-hint">Breite muss ungerade sein, damit jede Zwischenreihe exakt unter der Spitze zentriert
-              bleibt. Standardverhältnis Breite=2×Höhe−1 (z. B. 5×3) lässt jede Reihe um genau 2 Punkte wachsen; andere
-              Kombinationen werden gleichmäßig dazwischen interpoliert.</p>
+            <div id="triangleRadialFields" style="display:none">
+              <label class="form-hint" for="triangleRings">Ringe</label>
+              <input class="form-input" type="number" id="triangleRings" min="1" value="3">
+              <p class="form-hint">Regelmäßiges (gleichseitiges) Dreieck: Ring k hat 3×k Punkte.</p>
+            </div>
             <p class="form-error" id="triangleGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.
             </p>
           </div>
 
           <div class="form-group" id="rhombusGridGroup" style="display:none">
-            <label class="form-label">Rauten-Größe</label>
-            <div class="custom-grid-row">
-              <div class="custom-grid-field">
-                <label class="form-hint" for="rhombusWidth">Breite (Mitte)</label>
-                <input class="form-input" type="number" id="rhombusWidth" min="1" step="2" value="5">
+            <label class="form-label" for="rhombusMode">Raute-Modus</label>
+            <select class="form-input" id="rhombusMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="rhombusStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="rhombusWidth">Breite (Mitte)</label>
+                  <input class="form-input" type="number" id="rhombusWidth" min="1" step="2" value="5">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="rhombusHeight">Höhe</label>
+                  <input class="form-input" type="number" id="rhombusHeight" min="1" step="2" value="5">
+                </div>
               </div>
-              <span class="custom-grid-x">×</span>
-              <div class="custom-grid-field">
-                <label class="form-hint" for="rhombusHeight">Höhe</label>
-                <input class="form-input" type="number" id="rhombusHeight" min="1" step="2" value="5">
-              </div>
+              <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis
+                zur Mitte auf „Breite" an und nimmt danach spiegelbildlich wieder ab (z. B. 5×5 → Reihenbreiten
+                1,3,5,3,1).</p>
             </div>
-            <p class="form-hint">Breite muss ungerade sein. Die Reihenbreite wächst von 1 Punkt oben symmetrisch bis zur
-              Mitte auf „Breite" an und nimmt danach spiegelbildlich wieder ab (z. B. 5×5 → Reihenbreiten 1,3,5,3,1).
-            </p>
+            <div id="rhombusRadialFields" style="display:none">
+              <label class="form-hint" for="rhombusRadialRings">Ringe</label>
+              <input class="form-input" type="number" id="rhombusRadialRings" min="1" value="3">
+              <div class="custom-grid-row" style="margin-top:var(--space-3)">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="rhombusRadialWidth">Breiten-Anteil</label>
+                  <input class="form-input" type="number" id="rhombusRadialWidth" min="1" value="1">
+                </div>
+                <span class="custom-grid-x">:</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="rhombusRadialHeight">Höhen-Anteil</label>
+                  <input class="form-input" type="number" id="rhombusRadialHeight" min="1" value="1">
+                </div>
+              </div>
+              <p class="form-hint">Eine Raute hat stets zwei senkrecht zueinander stehende Diagonalen (oben/unten,
+                links/rechts) — Breiten-/Höhen-Anteil bestimmen deren Längenverhältnis. Bei gleichen Anteilen entsteht
+                ein Quadrat (Sonderfall Raute).</p>
+            </div>
             <p class="form-error" id="rhombusGridError">Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.
             </p>
           </div>
@@ -234,11 +311,26 @@
           </div>
 
           <div class="form-group" id="kiteGridGroup" style="display:none">
-            <label class="form-label" for="kiteHeight">Höhe nach oben (h, inkl. Mittelpunkt)</label>
-            <input class="form-input" type="number" id="kiteHeight" min="1" max="8" value="3">
-            <p class="form-hint">Die Mittelreihe ist 2h+1 breit. Von der Mittelreihe abwärts verjüngt sich das Raster
-              über insgesamt h(h+1)/2 Reihen in abnehmend wiederholten Stufen — dadurch entsteht das drachenartige,
-              nach unten hin länger auslaufende Profil.</p>
+            <label class="form-label" for="kiteMode">Drachenviereck-Modus</label>
+            <select class="form-input" id="kiteMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="kiteStandardFields">
+              <label class="form-hint" for="kiteHeight">Höhe nach oben (h, inkl. Mittelpunkt)</label>
+              <input class="form-input" type="number" id="kiteHeight" min="1" max="8" value="3">
+              <p class="form-hint">Die Mittelreihe ist 2h+1 breit. Von der Mittelreihe abwärts verjüngt sich das Raster
+                über insgesamt h(h+1)/2 Reihen in abnehmend wiederholten Stufen — dadurch entsteht das drachenartige,
+                nach unten hin länger auslaufende Profil.</p>
+            </div>
+            <div id="kiteRadialFields" style="display:none">
+              <label class="form-hint" for="kiteRadialRings">Ringe</label>
+              <input class="form-input" type="number" id="kiteRadialRings" min="1" value="3">
+              <label class="form-hint" for="kiteRadialTail" style="margin-top:var(--space-3);display:block">Schwanz-Verhältnis</label>
+              <input class="form-input" type="number" id="kiteRadialTail" min="1" value="2">
+              <p class="form-hint">Oben und beide Seiten bleiben gleich lang; „Schwanz-Verhältnis" streckt nur den
+                unteren Punkt (> 1 = charakteristischer langer Schwanz, = 1 ergibt eine Raute als Sonderfall).</p>
+            </div>
             <p class="form-error" id="kiteGridError">h muss zwischen 1 und 8 liegen.</p>
           </div>
 
@@ -369,11 +461,144 @@
           </div>
 
           <div class="form-group" id="semicircleGridGroup" style="display:none">
-            <label class="form-label" for="semicircleRings">Halbkreis-Ringe</label>
+            <label class="form-label" for="semicircleMode">Halbkreis-Modus</label>
+            <select class="form-input" id="semicircleMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <label class="form-hint" for="semicircleRings">Ringe</label>
             <input class="form-input" type="number" id="semicircleRings" min="1" value="3">
-            <p class="form-hint">Wie beim Kreis, aber auf einen 180°-Bogen beschränkt (Kuppel oben, gerade Grundseite
-              unten). Ring k hat 2×k+1 Punkte statt 4×k.</p>
+            <div id="semicircleStandardHint">
+              <p class="form-hint">Wie beim Kreis, aber auf einen 180°-Bogen beschränkt (Kuppel oben, gerade
+                Grundseite unten). Ring k hat 2×k+1 Punkte statt 4×k. Bei wenigen Ringen wirkt das eher eckig als
+                rund.</p>
+            </div>
+            <div id="semicircleRadialFields" style="display:none">
+              <label class="form-hint" for="semicircleResolution" style="margin-top:var(--space-3);display:block">Auflösung (muss gerade sein)</label>
+              <input class="form-input" type="number" id="semicircleResolution" min="2" max="24" step="2" value="8">
+              <p class="form-hint">Ring k hat Auflösung×k+1 Punkte statt fest 2×k+1 — mit höherer Auflösung wirkt die
+                Kuppel deutlich runder. Muss gerade sein, damit die Kuppelspitze weiterhin exakt mittig liegt.</p>
+            </div>
             <p class="form-error" id="semicircleGridError">Die Ringzahl muss mindestens 1 betragen.</p>
+          </div>
+
+          <div class="form-group" id="starGridGroup" style="display:none">
+            <label class="form-hint" for="starTips">Spitzen</label>
+            <input class="form-input" type="number" id="starTips" min="3" max="12" value="5" style="margin-bottom:var(--space-3)">
+            <label class="form-label" for="starMode">Sternpolygon-Modus</label>
+            <select class="form-input" id="starMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="starStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="starWidth">Breite</label>
+                  <input class="form-input" type="number" id="starWidth" min="1" step="2" value="9">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="starHeight">Höhe</label>
+                  <input class="form-input" type="number" id="starHeight" min="1" value="15">
+                </div>
+              </div>
+              <p class="form-hint">Breite muss ungerade sein. Rasterisiert das echte Sternpolygon (2×Spitzen Ecken,
+                abwechselnd Außen-/Innenradius, wie bei Radial) zeilenweise per horizontalem Schnitt — je größer die
+                Höhe im Verhältnis zur Breite, desto feiner die Auflösung der Zacken.</p>
+            </div>
+            <div id="starRadialFields" style="display:none">
+              <label class="form-hint" for="starRings">Ringe</label>
+              <input class="form-input" type="number" id="starRings" min="1" value="3">
+              <p class="form-hint">Klassisches Sternpolygon: 2×Spitzen Ecken, abwechselnd auf vollem und einem festen
+                inneren Radius (45 %).</p>
+            </div>
+            <p class="form-error" id="starGridError">Spitzen zwischen 3 und 12; Breite ungerade, beide mindestens 1.</p>
+          </div>
+
+          <div class="form-group" id="annulusGridGroup" style="display:none">
+            <label class="form-label" for="annulusRings">Kreisring</label>
+            <div class="custom-grid-row">
+              <div class="custom-grid-field">
+                <label class="form-hint" for="annulusRings">Ringe</label>
+                <input class="form-input" type="number" id="annulusRings" min="2" value="5">
+              </div>
+              <span class="custom-grid-x">−</span>
+              <div class="custom-grid-field">
+                <label class="form-hint" for="annulusHollow">Aushöhlung (Ringe)</label>
+                <input class="form-input" type="number" id="annulusHollow" min="1" value="2">
+              </div>
+            </div>
+            <p class="form-hint">Wie beim Kreis, aber die innersten „Aushöhlung"-Ringe (inkl. Mittelpunkt) fehlen —
+              es bleibt ein echtes Loch in der Mitte. Aushöhlung muss kleiner sein als Ringe.</p>
+            <p class="form-error" id="annulusGridError">Ringe mindestens 2; Aushöhlung mindestens 1 und kleiner als
+              Ringe.</p>
+          </div>
+
+          <div class="form-group" id="compassGridGroup" style="display:none">
+            <label class="form-label" for="compassMode">Kompassstern-Modus</label>
+            <select class="form-input" id="compassMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="compassStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="compassWidth">Breite</label>
+                  <input class="form-input" type="number" id="compassWidth" min="1" step="2" value="9">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="compassHeight">Höhe</label>
+                  <input class="form-input" type="number" id="compassHeight" min="1" step="2" value="9">
+                </div>
+              </div>
+              <p class="form-hint">Breite und Höhe müssen beide ungerade sein. Rasterisiert das echte 8-eckige
+                Kompassstern-Vieleck (wie bei Radial) zeilenweise per horizontalem Schnitt — die Ost-/West-Arme liegen
+                exakt auf der Mittelzeile und erzeugen dort einen sprunghaften Breitensprung statt einer gleichmäßigen
+                Verjüngung wie bei einer Raute.</p>
+            </div>
+            <div id="compassRadialFields" style="display:none">
+              <label class="form-hint" for="compassRings">Ringe</label>
+              <input class="form-input" type="number" id="compassRings" min="1" value="3">
+              <p class="form-hint">8 Ecken im 45°-Abstand: 4 lange Hauptarme (Nord/Ost/Süd/West) und 4 kürzere
+                Nebenarme dazwischen (35 % Radius).</p>
+            </div>
+            <p class="form-error" id="compassGridError">Breite und Höhe müssen beide ungerade und mindestens 1 sein.
+            </p>
+          </div>
+
+          <div class="form-group" id="crossGridGroup" style="display:none">
+            <label class="form-hint" for="crossArmWidth">Armbreite (Anteil, 0,1–0,8)</label>
+            <input class="form-input" type="number" id="crossArmWidth" min="0.1" max="0.8" step="0.05" value="0.35" style="margin-bottom:var(--space-3)">
+            <label class="form-label" for="crossMode">Kreuz-Modus</label>
+            <select class="form-input" id="crossMode" style="margin-bottom:var(--space-3)">
+              <option value="standard">Standard</option>
+              <option value="radial">Radial</option>
+            </select>
+            <div id="crossStandardFields">
+              <div class="custom-grid-row">
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="crossWidth">Breite</label>
+                  <input class="form-input" type="number" id="crossWidth" min="1" step="2" value="9">
+                </div>
+                <span class="custom-grid-x">×</span>
+                <div class="custom-grid-field">
+                  <label class="form-hint" for="crossHeight">Höhe</label>
+                  <input class="form-input" type="number" id="crossHeight" min="1" step="2" value="15">
+                </div>
+              </div>
+              <p class="form-hint">Breite und Höhe müssen beide ungerade sein. Rasterisiert das echte 12-eckige
+                Kreuz-Vieleck (wie bei Radial) zeilenweise per horizontalem Schnitt — schmale Armbreite oben, volle
+                Breite im mittleren Balkenband, schmale Armbreite unten.</p>
+            </div>
+            <div id="crossRadialFields" style="display:none">
+              <label class="form-hint" for="crossRings">Ringe</label>
+              <input class="form-input" type="number" id="crossRings" min="1" value="3">
+              <p class="form-hint">Die 12 echten Kreuz-Ecken werden konzentrisch skaliert und mit Speichen zum
+                Zentrum verbunden — ein kreuzförmiges Ring-Mandala.</p>
+            </div>
+            <p class="form-error" id="crossGridError">Armbreite zwischen 0,1 und 0,8; Breite und Höhe müssen beide
+              ungerade und mindestens 1 sein.</p>
           </div>
 
           <div class="form-group">

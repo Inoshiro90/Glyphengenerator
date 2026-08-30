@@ -9,17 +9,22 @@ import { buildStandaloneSVG, downloadSVGString, downloadSVGAsPNG, buildExportFil
 import { exportAllCombosAsZip } from './bulk-export.js';
 import { state } from './state.js';
 import {
-  gridSelect, customWidth, customHeight, hexDiag, hexVert,
-  circleRings, ellipseWidth, ellipseHeight,
-  triangleWidth, triangleHeight, rhombusWidth, rhombusHeight,
+  gridSelect, customMode, customWidth, customHeight, customRings, hexMode, hexDiag, hexVert, hexRings,
+  circleMode, circleRings, circleResolution, ellipseWidth, ellipseHeight,
+  triangleMode, triangleWidth, triangleHeight, triangleRings,
+  rhombusMode, rhombusWidth, rhombusHeight, rhombusRadialRings, rhombusRadialWidth, rhombusRadialHeight,
   trapezoidTop, trapezoidHeight, parallelogramSide, parallelogramHeight, parallelogramOffset,
-  kiteHeight,
+  kiteMode, kiteHeight, kiteRadialRings, kiteRadialTail,
   pentagonMode, pentagonDiamondSize, pentagonRings, pentagonSquareSize,
   heptagonMode, heptagonRings, heptagonWidth, heptagonHeight,
   octagonMode, octagonRings, octagonSize,
   nonagonMode, nonagonRings, nonagonSize,
   decagonMode, decagonRings, decagonWidth, decagonHeight,
-  semicircleRings,
+  semicircleMode, semicircleRings, semicircleResolution,
+  starTips, starMode, starWidth, starHeight, starRings,
+  annulusRings, annulusHollow,
+  compassMode, compassWidth, compassHeight, compassRings,
+  crossArmWidth, crossMode, crossWidth, crossHeight, crossRings,
   forbiddenEnabled, forbiddenInput,
   avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
   stepsInput, multiTotalPoints, multiElementCount, multiMinPoints, multiMaxPoints,
@@ -28,6 +33,8 @@ import {
 import {
   runGeneration, runEnumeration, rebuildGridAndRefresh, refreshForbiddenOnly,
   handleGridSelectChange, handleForbiddenEnabledChange, handleTreeModeChange, handleMultiModeChange,
+  handleCustomModeChange, handleHexModeChange, handleTriangleModeChange, handleRhombusModeChange, handleKiteModeChange,
+  handleStarModeChange, handleCompassModeChange, handleCrossModeChange, handleCircleModeChange, handleSemicircleModeChange,
   handlePentagonModeChange, handleHeptagonModeChange, handleOctagonModeChange,
   handleNonagonModeChange, handleDecagonModeChange,
   updateMultiFieldBoundAttributes, updateMultiFieldBounds, refreshMultiReadiness, getExportOptions,
@@ -130,6 +137,9 @@ hexDiag.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAnd
 hexVert.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 circleRings.addEventListener('change', rebuildGridAndRefresh);
 circleRings.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+circleResolution.addEventListener('change', rebuildGridAndRefresh);
+circleResolution.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+circleMode.addEventListener('change', handleCircleModeChange);
 ellipseWidth.addEventListener('change', rebuildGridAndRefresh);
 ellipseHeight.addEventListener('change', rebuildGridAndRefresh);
 ellipseWidth.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
@@ -152,8 +162,38 @@ parallelogramOffset.addEventListener('change', rebuildGridAndRefresh);
 parallelogramSide.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramHeight.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 parallelogramOffset.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
-// Drachenviereck und Halbkreis: einfache Einzelfelder.
-[kiteHeight, semicircleRings].forEach(el => {
+// Drachenviereck (Standard-Feld) und Kreisring: einfache Einzelfelder
+// (keine Modus-Umschaltung nötig).
+[kiteHeight, annulusRings, annulusHollow].forEach(el => {
+  el.addEventListener('change', rebuildGridAndRefresh);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+});
+semicircleRings.addEventListener('change', rebuildGridAndRefresh);
+semicircleRings.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+semicircleResolution.addEventListener('change', rebuildGridAndRefresh);
+semicircleResolution.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
+semicircleMode.addEventListener('change', handleSemicircleModeChange);
+
+// Rechteck/Quadrat, Hexagon, Dreieck, Raute, Drachenviereck, Sternpolygon,
+// Kompassstern, Kreis, Halbkreis haben je einen Modus-Select
+// ("Standard"/"Raster" vs. "Radial") plus die zugehörigen Unterfelder.
+customMode.addEventListener('change', handleCustomModeChange);
+hexMode.addEventListener('change', handleHexModeChange);
+triangleMode.addEventListener('change', handleTriangleModeChange);
+rhombusMode.addEventListener('change', handleRhombusModeChange);
+kiteMode.addEventListener('change', handleKiteModeChange);
+starMode.addEventListener('change', handleStarModeChange);
+compassMode.addEventListener('change', handleCompassModeChange);
+crossMode.addEventListener('change', handleCrossModeChange);
+
+[
+  customRings, hexRings, triangleRings,
+  rhombusRadialRings, rhombusRadialWidth, rhombusRadialHeight,
+  kiteRadialRings, kiteRadialTail,
+  starTips, starWidth, starHeight, starRings,
+  compassWidth, compassHeight, compassRings,
+  crossArmWidth, crossWidth, crossHeight, crossRings
+].forEach(el => {
   el.addEventListener('change', rebuildGridAndRefresh);
   el.addEventListener('keydown', e => { if (e.key === 'Enter') rebuildGridAndRefresh(); });
 });

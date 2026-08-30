@@ -41,6 +41,18 @@ export const CUSTOM_MAX_DIM = 12;
 // daher eine niedrigere Obergrenze als bei linear wachsenden Rastern.
 export const KITE_MAX_H = 8;
 
+// Sternpolygon/Kompassstern: Anzahl der Spitzen. Die Radial-Variante hat
+// 2×Spitzen Ecken, daher eine bescheidene Obergrenze (Lesbarkeit/Performance).
+export const STAR_TIPS_MIN = 3;
+export const STAR_TIPS_MAX = 12;
+
+// Kreuz: Armbreite als Anteil der Gesamtausdehnung (0=unendlich dünn,
+// 1=quadratisch). Grenzen halten das Kreuz sowohl klar spinnenbeinig
+// (nicht auf 0 kollabierend) als auch klar kreuzförmig (nicht auf ein
+// Quadrat anwachsend).
+export const CROSS_ARM_WIDTH_MIN = 0.1;
+export const CROSS_ARM_WIDTH_MAX = 0.8;
+
 // Für den Konzentrations-Constraint bei der Kanten-/Pfadgenerierung.
 export const CONCENTRATION_RADIUS_FACTOR = 1.55;
 export const CONCENTRATION_THRESHOLD = 0.55;

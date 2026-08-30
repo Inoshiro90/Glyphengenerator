@@ -14,7 +14,7 @@ export function initCombosView() {
 	outputCanvas.classList.add('combos-mode');
 
 	sequenceFooter.style.display = 'none';
-	setComboExportVisibility(true);
+	setComboExportVisibility(false);
 
 	outputTitle.textContent = 'Alle Kombinationen';
 

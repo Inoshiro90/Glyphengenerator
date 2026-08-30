@@ -101,20 +101,25 @@ export function downloadSVGAsPNG(svgString, filename, pixelSize) {
 // Kurzlabel für den Dateinamen je Rasterform. Als Lookup-Tabelle statt
 // einer langen Ternary-Kette, da inzwischen 13 Formen unterstützt werden.
 const DIMS_LABEL = {
-  hex: g => `hex${g.d}x${g.v}`,
-  circle: g => `kreis${g.n}`,
+  square: g => `quadrat_radial${g.n}`,
+  hex: g => g.mode === 'radial' ? `hexagon_radial${g.n}` : `hex${g.d}x${g.v}`,
+  circle: g => g.mode === 'radial' ? `kreis${g.n}_aufloesung${g.unitsPerRing}` : `kreis${g.n}`,
   ellipse: g => `ellipse${g.rx}x${g.ry}`,
-  triangle: g => `dreieck${g.width}x${g.height}`,
-  rhombus: g => `raute${g.width}x${g.height}`,
+  triangle: g => g.mode === 'radial' ? `dreieck_radial${g.n}` : `dreieck${g.width}x${g.height}`,
+  rhombus: g => g.mode === 'radial' ? `raute_radial${g.n}_${g.widthRatio}x${g.heightRatio}` : `raute${g.width}x${g.height}`,
   trapezoid: g => `trapez${g.top}x${g.height}`,
   parallelogram: g => `parallelogramm${g.sideLength}x${g.height}_versatz${g.offset}`,
-  kite: g => `drachenviereck_h${g.h}`,
+  kite: g => g.mode === 'radial' ? `drachenviereck_radial${g.n}_schwanz${g.tailRatio}` : `drachenviereck_h${g.h}`,
   pentagon: g => g.mode === 'radial' ? `fuenfeck_radial${g.n}` : `fuenfeck_${g.mode}${g.size}`,
   heptagon: g => g.mode === 'radial' ? `siebeneck_radial${g.n}` : `siebeneck_rechteck${g.width}x${g.height}`,
   octagon: g => g.mode === 'radial' ? `achteck_radial${g.n}` : `achteck_quadrat${g.size}`,
   nonagon: g => g.mode === 'radial' ? `neuneck_radial${g.n}` : `neuneck_quadrat${g.size}`,
   decagon: g => g.mode === 'radial' ? `zehneck_radial${g.n}` : `zehneck_rechteck${g.width}x${g.height}`,
-  semicircle: g => `halbkreis${g.n}`
+  semicircle: g => g.mode === 'radial' ? `halbkreis${g.n}_aufloesung${g.resolution}` : `halbkreis${g.n}`,
+  star: g => g.mode === 'radial' ? `stern${g.tips}spitzen_radial${g.n}` : `stern${g.tips}spitzen_${g.width}x${g.height}`,
+  annulus: g => `kreisring${g.n}_loch${g.hollow}`,
+  compass: g => g.mode === 'radial' ? `kompassstern_radial${g.n}` : `kompassstern_${g.width}x${g.height}`,
+  cross: g => g.mode === 'radial' ? `kreuz_radial${g.n}_arm${g.armWidth}` : `kreuz_${g.width}x${g.height}_arm${g.armWidth}`
 };
 
 // Baut einen sprechenden Dateinamen aus Rasterform/-größe, Schrittzahl

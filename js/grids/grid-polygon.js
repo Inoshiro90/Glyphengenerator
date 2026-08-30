@@ -23,17 +23,36 @@ import { clamp } from '../config.js';
    bildet dadurch ein echtes, geradlinig begrenztes N-Eck (nur
    größer skaliert), keinen Kreis.
    ----------------------------------------------------- */
-export function buildPolygonRadialGridDefinition(shape, sides, rings) {
+/* -----------------------------------------------------
+   ALLGEMEINE GRUNDLAGE (alle "Radial"-Modi, auch die nicht-
+   regelmäßigen Vielecke wie Raute/Drachenviereck)
+   Jede Ecke wird nicht mehr nur über einen gemeinsamen Winkel-
+   Schritt (2π/sides) beschrieben, sondern über ein individuelles
+   {angle, radius}-Paar — radius ist ein relativer Faktor (1 = volle
+   Ausdehnung bei Ring n). Ein regelmäßiges Vieleck ist damit nur
+   der Spezialfall "alle radius = 1, Winkel gleichmäßig verteilt";
+   eine Raute oder ein Drachenviereck nutzt stattdessen pro Ecke
+   unterschiedliche radius-Werte (z. B. oben/unten anders als
+   links/rechts), bleibt aber exakt dieselbe Ring-/Speichen-Logik:
+   pro Ring werden die Vieleck-Ecken auf den Faktor k/n skaliert
+   (Ähnlichkeitszentrum = Mittelpunkt), Kantenpunkte linear
+   dazwischen interpoliert (gerade Kanten, kein Kreisbogen), und
+   jeder Punkt verbindet sich radial mit dem winkelmäßig
+   nächstgelegenen Punkt des nächst-inneren Rings.
+   ----------------------------------------------------- */
+export function buildStarRadialGridDefinition(shape, corners, rings, extraProps) {
   const VIEW = 320;
   const margin = 40;
   const cx = VIEW / 2;
   const cy = VIEW / 2;
   const n = rings;
-  const unit = n === 0 ? 0 : (VIEW - 2 * margin) / 2 / n;
+  const sides = corners.length;
+  const maxRadius = Math.max(...corners.map(c => c.radius));
+  const unit = n === 0 || maxRadius === 0 ? 0 : (VIEW - 2 * margin) / 2 / n / maxRadius;
 
   function corner(k, j) {
-    const angle = j * (2 * Math.PI / sides); // 0 = 12 Uhr, wächst im Uhrzeigersinn
-    return { x: cx + unit * k * Math.sin(angle), y: cy - unit * k * Math.cos(angle) };
+    const { angle, radius } = corners[j];
+    return { x: cx + unit * radius * k * Math.sin(angle), y: cy - unit * radius * k * Math.cos(angle) };
   }
 
   const points = {};
@@ -106,7 +125,51 @@ export function buildPolygonRadialGridDefinition(shape, sides, rings) {
     stroke: clamp(3 - (maxDim - 3) * 0.18, 1.1, 3)
   };
 
-  return { shape, sides, n, mode: 'radial', cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit };
+  return Object.assign(
+    { shape, n, mode: 'radial', cols: maxDim, rows: maxDim, points, adjacency, style, spacing: unit },
+    extraProps
+  );
+}
+
+// Regelmäßiges Vieleck (Spezialfall: alle Ecken gleich weit vom
+// Mittelpunkt entfernt, gleichmäßig verteilte Winkel) — unverändertes
+// Verhalten/Ergebnis gegenüber der ursprünglichen Implementierung.
+export function buildPolygonRadialGridDefinition(shape, sides, rings) {
+  const corners = Array.from({ length: sides }, (_, j) => ({ angle: j * (2 * Math.PI / sides), radius: 1 }));
+  return buildStarRadialGridDefinition(shape, corners, rings, { sides });
+}
+
+// QUADRAT (Rechteck-Raster, Radial-Modus) — regelmäßiges Vieleck mit
+// 4 Seiten; Ecke 0 liegt oben (12 Uhr), das Quadrat erscheint dadurch
+// als auf der Spitze stehende Raute (wie bei den übrigen Vielecken:
+// "Radial" ist eine eigenständige, von der Reihen-Variante bewusst
+// verschiedene Konstruktionsart).
+// QUADRAT (Rechteck-Raster, Radial-Modus) — regelmäßiges Vieleck mit
+// 4 Seiten. Ecken NICHT wie bei den übrigen Vielecken bei 0°/90°/180°/
+// 270° (das ergäbe eine auf der Spitze stehende Raute), sondern um eine
+// halbe Seiten-Winkelbreite (45°) gedreht auf 45°/135°/225°/315° — so
+// liegt jeweils die MITTE einer Kante oben/rechts/unten/links, das
+// Quadrat steht also flach auf der Seite statt auf der Spitze.
+export function buildSquareRadialGridDefinition(rings) {
+  const sides = 4;
+  const rotation = Math.PI / sides;
+  const corners = Array.from({ length: sides }, (_, j) => ({
+    angle: rotation + j * (2 * Math.PI / sides), radius: 1
+  }));
+  return buildStarRadialGridDefinition('square', corners, rings, { sides });
+}
+
+// HEXAGON (Radial-Modus) — regelmäßiges Sechseck. Shape-Bezeichner
+// bewusst 'hex' (nicht 'hexagon'), damit er mit dem intern überall
+// genutzten Kürzel des bestehenden Hexagon-Standard-Modus übereinstimmt
+// (GRID_BUILDERS-Schlüssel, specFromGrid, specsEqual, DIMS_LABEL).
+export function buildHexagonRadialGridDefinition(rings) {
+  return buildPolygonRadialGridDefinition('hex', 6, rings);
+}
+
+// DREIECK (Radial-Modus) — regelmäßiges (gleichseitiges) Dreieck.
+export function buildTriangleRadialGridDefinition(rings) {
+  return buildPolygonRadialGridDefinition('triangle', 3, rings);
 }
 
 // Gemeinsame Reihenbreiten-Formel der Raute (Peak in der Mitte),

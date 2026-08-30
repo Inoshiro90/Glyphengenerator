@@ -4,17 +4,21 @@
    der Raster/Graphen bei Auswahländerung, sowie die
    öffentlichen Handler für Generieren/Enumerieren.
    ===================================================== */
-import { CUSTOM_MIN_DIM, CUSTOM_MAX_DIM, KITE_MAX_H } from './config.js';
+import { CUSTOM_MIN_DIM, CUSTOM_MAX_DIM, KITE_MAX_H, STAR_TIPS_MIN, STAR_TIPS_MAX, CROSS_ARM_WIDTH_MIN, CROSS_ARM_WIDTH_MAX } from './config.js';
 import {
-  gridSelect, customGridGroup, customWidth, customHeight, customGridError,
-  hexGridGroup, hexDiag, hexVert, hexGridError,
-  circleGridGroup, circleRings, circleGridError,
+  gridSelect, customGridGroup, customMode, customStandardFields, customRadialFields,
+  customWidth, customHeight, customRings, customGridError,
+  hexGridGroup, hexMode, hexStandardFields, hexRadialFields, hexDiag, hexVert, hexRings, hexGridError,
+  circleGridGroup, circleMode, circleStandardHint, circleRadialFields, circleRings, circleResolution, circleGridError,
   ellipseGridGroup, ellipseWidth, ellipseHeight, ellipseGridError,
-  triangleGridGroup, triangleWidth, triangleHeight, triangleGridError,
-  rhombusGridGroup, rhombusWidth, rhombusHeight, rhombusGridError,
+  triangleGridGroup, triangleMode, triangleStandardFields, triangleRadialFields,
+  triangleWidth, triangleHeight, triangleRings, triangleGridError,
+  rhombusGridGroup, rhombusMode, rhombusStandardFields, rhombusRadialFields,
+  rhombusWidth, rhombusHeight, rhombusRadialRings, rhombusRadialWidth, rhombusRadialHeight, rhombusGridError,
   trapezoidGridGroup, trapezoidTop, trapezoidHeight, trapezoidGridError,
   parallelogramGridGroup, parallelogramSide, parallelogramHeight, parallelogramOffset, parallelogramGridError,
-  kiteGridGroup, kiteHeight, kiteGridError,
+  kiteGridGroup, kiteMode, kiteStandardFields, kiteRadialFields,
+  kiteHeight, kiteRadialRings, kiteRadialTail, kiteGridError,
   pentagonGridGroup, pentagonMode, pentagonDiamondFields, pentagonDiamondSize,
   pentagonRadialFields, pentagonRings, pentagonSquareFields, pentagonSquareSize, pentagonGridError,
   heptagonGridGroup, heptagonMode, heptagonRadialFields, heptagonRings,
@@ -25,7 +29,15 @@ import {
   nonagonSquareFields, nonagonSize, nonagonGridError,
   decagonGridGroup, decagonMode, decagonRadialFields, decagonRings,
   decagonRectangleFields, decagonWidth, decagonHeight, decagonGridError,
-  semicircleGridGroup, semicircleRings, semicircleGridError,
+  semicircleGridGroup, semicircleMode, semicircleStandardHint, semicircleRadialFields,
+  semicircleRings, semicircleResolution, semicircleGridError,
+  starGridGroup, starTips, starMode, starStandardFields, starRadialFields,
+  starWidth, starHeight, starRings, starGridError,
+  annulusGridGroup, annulusRings, annulusHollow, annulusGridError,
+  compassGridGroup, compassMode, compassStandardFields, compassRadialFields,
+  compassWidth, compassHeight, compassRings, compassGridError,
+  crossGridGroup, crossArmWidth, crossMode, crossStandardFields, crossRadialFields,
+  crossWidth, crossHeight, crossRings, crossGridError,
   forbiddenEnabled, forbiddenFieldWrap, forbiddenInput, forbiddenError, forbiddenRangeHint,
   avoidCrossingBox, avoidPointReuseBox, avoidConcentrationBox, treeModeBox, multiModeBox,
   stepsGroup, stepsInput, maxStepsLabel, maxStepsQualifier, stepsError,
@@ -39,6 +51,11 @@ import {
   buildGridDefinition, buildHexGridDefinition, buildCircleGridDefinition, buildEllipseGridDefinition,
   buildTriangleGridDefinition, buildRhombusGridDefinition, buildTrapezoidGridDefinition, buildParallelogramGridDefinition,
   buildKiteGridDefinition, buildSemicircleGridDefinition,
+  buildAnnulusGridDefinition, buildStarGridDefinition, buildStarPolygonRadialGridDefinition,
+  buildCompassGridDefinition, buildCompassRadialGridDefinition,
+  buildCrossGridDefinition, buildCrossRadialGridDefinition,
+  buildSquareRadialGridDefinition, buildHexagonRadialGridDefinition, buildTriangleRadialGridDefinition,
+  buildRhombusRadialGridDefinition, buildKiteRadialGridDefinition,
   buildPentagonDiamondGridDefinition, buildPentagonSquareGridDefinition, buildPentagonRadialGridDefinition,
   buildHeptagonRectangleGridDefinition, buildHeptagonRadialGridDefinition,
   buildOctagonSquareGridDefinition, buildOctagonRadialGridDefinition,
@@ -456,8 +473,38 @@ export function runEnumeration() {
 /* Ermittelt die aktuelle Raster-Spezifikation aus der Auswahl:
    feste Größe, "Benutzerdefiniert" (Rechteck) oder "Hexagon".
    Gibt ein generisches { shape, ... } Objekt zurück. */
+// Gemeinsame Validierung für "Ringe"-Eingaben (Radial-Modus): ganzzahlig,
+// zwischen 1 und CUSTOM_MAX_DIM. Vor den ersten Aufrufsort verschoben, da
+// jetzt auch Rechteck/Quadrat, Hexagon, Dreieck einen Radial-Modus haben.
+function validateRingsField(input, error) {
+  const n = Number(input.value);
+  const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+  input.classList.toggle('error', invalid);
+  error.classList.toggle('visible', invalid);
+  error.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+  return invalid ? null : n;
+}
+
+// Gemeinsame Validierung für einen einzelnen positiven Ganzzahl-"Anteil"
+// (Verhältnis-Feld), z. B. Breiten-/Höhen-Anteil der Raute-Radial-Variante
+// oder das Schwanz-Verhältnis des Drachenviereck-Radial-Modus.
+function validateRatioField(input, error, label) {
+  const n = Number(input.value);
+  const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+  input.classList.toggle('error', invalid);
+  if (invalid) { error.classList.add('visible'); error.textContent = `${label} muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`; }
+  return invalid ? null : n;
+}
+
 export function getSelectedDimensions() {
   if (gridSelect.value === 'custom') {
+    if (customMode.value === 'radial') {
+      const n = validateRingsField(customRings, customGridError);
+      customWidth.classList.remove('error');
+      customHeight.classList.remove('error');
+      if (n === null) return null;
+      return { shape: 'square', mode: 'radial', n };
+    }
     const w = Number(customWidth.value);
     const h = Number(customHeight.value);
     const invalid =
@@ -468,14 +515,21 @@ export function getSelectedDimensions() {
     customHeight.classList.toggle('error', invalid);
     customGridError.classList.toggle('visible', invalid);
     customGridError.textContent = `Breite und Höhe müssen zwischen ${CUSTOM_MIN_DIM} und ${CUSTOM_MAX_DIM} liegen.`;
+    customRings.classList.remove('error');
     if (invalid) return null;
     return { shape: 'rect', cols: w, rows: h };
   }
   customGridError.classList.remove('visible');
-  customWidth.classList.remove('error');
-  customHeight.classList.remove('error');
+  [customWidth, customHeight, customRings].forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'hexagon') {
+    if (hexMode.value === 'radial') {
+      const n = validateRingsField(hexRings, hexGridError);
+      hexDiag.classList.remove('error');
+      hexVert.classList.remove('error');
+      if (n === null) return null;
+      return { shape: 'hex', mode: 'radial', n };
+    }
     const d = Number(hexDiag.value);
     const v = Number(hexVert.value);
     const invalid =
@@ -486,24 +540,37 @@ export function getSelectedDimensions() {
     hexVert.classList.toggle('error', invalid);
     hexGridError.classList.toggle('visible', invalid);
     hexGridError.textContent = `Schrägseiten und Vertikalseiten müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    hexRings.classList.remove('error');
     if (invalid) return null;
-    return { shape: 'hex', d, v };
+    return { shape: 'hex', mode: 'standard', d, v };
   }
   hexGridError.classList.remove('visible');
-  hexDiag.classList.remove('error');
-  hexVert.classList.remove('error');
+  [hexDiag, hexVert, hexRings].forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'circle') {
     const n = Number(circleRings.value);
-    const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
-    circleRings.classList.toggle('error', invalid);
-    circleGridError.classList.toggle('visible', invalid);
+    const ringsInvalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+    circleRings.classList.toggle('error', ringsInvalid);
+    if (circleMode.value === 'radial') {
+      const res = Number(circleResolution.value);
+      const resInvalid = !Number.isInteger(res) || res < 3 || res > 24;
+      circleResolution.classList.toggle('error', resInvalid);
+      const invalid = ringsInvalid || resInvalid;
+      circleGridError.classList.toggle('visible', invalid);
+      circleGridError.textContent = ringsInvalid
+        ? `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`
+        : 'Die Auflösung muss zwischen 3 und 24 liegen.';
+      if (invalid) return null;
+      return { shape: 'circle', mode: 'radial', n, resolution: res };
+    }
+    circleResolution.classList.remove('error');
+    circleGridError.classList.toggle('visible', ringsInvalid);
     circleGridError.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
-    if (invalid) return null;
-    return { shape: 'circle', n };
+    if (ringsInvalid) return null;
+    return { shape: 'circle', mode: 'standard', n };
   }
   circleGridError.classList.remove('visible');
-  circleRings.classList.remove('error');
+  [circleRings, circleResolution].forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'ellipse') {
     const rx = Number(ellipseWidth.value);
@@ -524,6 +591,13 @@ export function getSelectedDimensions() {
   ellipseHeight.classList.remove('error');
 
   if (gridSelect.value === 'triangle') {
+    if (triangleMode.value === 'radial') {
+      const n = validateRingsField(triangleRings, triangleGridError);
+      triangleWidth.classList.remove('error');
+      triangleHeight.classList.remove('error');
+      if (n === null) return null;
+      return { shape: 'triangle', mode: 'radial', n };
+    }
     const width = Number(triangleWidth.value);
     const height = Number(triangleHeight.value);
     const invalid =
@@ -537,14 +611,24 @@ export function getSelectedDimensions() {
     triangleGridError.textContent = width % 2 === 0
       ? 'Die Breite muss ungerade sein, damit die Reihen zentriert bleiben.'
       : `Breite und Höhe müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    triangleRings.classList.remove('error');
     if (invalid) return null;
-    return { shape: 'triangle', width, height };
+    return { shape: 'triangle', mode: 'standard', width, height };
   }
   triangleGridError.classList.remove('visible');
-  triangleWidth.classList.remove('error');
-  triangleHeight.classList.remove('error');
+  [triangleWidth, triangleHeight, triangleRings].forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'rhombus') {
+    if (rhombusMode.value === 'radial') {
+      const n = validateRingsField(rhombusRadialRings, rhombusGridError);
+      const widthRatio = validateRatioField(rhombusRadialWidth, rhombusGridError, 'Breiten-Anteil');
+      const heightRatio = validateRatioField(rhombusRadialHeight, rhombusGridError, 'Höhen-Anteil');
+      rhombusWidth.classList.remove('error');
+      rhombusHeight.classList.remove('error');
+      if (n === null || widthRatio === null || heightRatio === null) return null;
+      rhombusGridError.classList.remove('visible');
+      return { shape: 'rhombus', mode: 'radial', n, widthRatio, heightRatio };
+    }
     const width = Number(rhombusWidth.value);
     const height = Number(rhombusHeight.value);
     const invalid =
@@ -558,12 +642,13 @@ export function getSelectedDimensions() {
     rhombusGridError.textContent = (width % 2 === 0 || height % 2 === 0)
       ? 'Breite und Höhe müssen beide ungerade sein, damit die Reihen zentriert bleiben.'
       : `Breite und Höhe müssen zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
+    [rhombusRadialRings, rhombusRadialWidth, rhombusRadialHeight].forEach(el => el.classList.remove('error'));
     if (invalid) return null;
-    return { shape: 'rhombus', width, height };
+    return { shape: 'rhombus', mode: 'standard', width, height };
   }
   rhombusGridError.classList.remove('visible');
-  rhombusWidth.classList.remove('error');
-  rhombusHeight.classList.remove('error');
+  [rhombusWidth, rhombusHeight, rhombusRadialRings, rhombusRadialWidth, rhombusRadialHeight]
+    .forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'trapezoid') {
     const top = Number(trapezoidTop.value);
@@ -606,27 +691,25 @@ export function getSelectedDimensions() {
   parallelogramOffset.classList.remove('error');
 
   if (gridSelect.value === 'kite') {
+    if (kiteMode.value === 'radial') {
+      const n = validateRingsField(kiteRadialRings, kiteGridError);
+      const tailRatio = validateRatioField(kiteRadialTail, kiteGridError, 'Schwanz-Verhältnis');
+      kiteHeight.classList.remove('error');
+      if (n === null || tailRatio === null) return null;
+      kiteGridError.classList.remove('visible');
+      return { shape: 'kite', mode: 'radial', n, tailRatio };
+    }
     const h = Number(kiteHeight.value);
     const invalid = !Number.isInteger(h) || h < 1 || h > KITE_MAX_H;
     kiteHeight.classList.toggle('error', invalid);
     kiteGridError.classList.toggle('visible', invalid);
     kiteGridError.textContent = `h muss zwischen 1 und ${KITE_MAX_H} liegen.`;
+    [kiteRadialRings, kiteRadialTail].forEach(el => el.classList.remove('error'));
     if (invalid) return null;
-    return { shape: 'kite', h };
+    return { shape: 'kite', mode: 'standard', h };
   }
   kiteGridError.classList.remove('visible');
-  kiteHeight.classList.remove('error');
-
-  // Gemeinsame Validierung für "Ringe"-Eingaben (Radial-Modus aller
-  // fünf Vielecke): ganzzahlig, zwischen 1 und CUSTOM_MAX_DIM.
-  function validateRingsField(input, error) {
-    const n = Number(input.value);
-    const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
-    input.classList.toggle('error', invalid);
-    error.classList.toggle('visible', invalid);
-    error.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
-    return invalid ? null : n;
-  }
+  [kiteHeight, kiteRadialRings, kiteRadialTail].forEach(el => el.classList.remove('error'));
 
   if (gridSelect.value === 'pentagon') {
     if (pentagonMode.value === 'radial') {
@@ -739,15 +822,142 @@ export function getSelectedDimensions() {
 
   if (gridSelect.value === 'semicircle') {
     const n = Number(semicircleRings.value);
-    const invalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
-    semicircleRings.classList.toggle('error', invalid);
-    semicircleGridError.classList.toggle('visible', invalid);
+    const ringsInvalid = !Number.isInteger(n) || n < 1 || n > CUSTOM_MAX_DIM;
+    semicircleRings.classList.toggle('error', ringsInvalid);
+    if (semicircleMode.value === 'radial') {
+      const res = Number(semicircleResolution.value);
+      const resInvalid = !Number.isInteger(res) || res < 2 || res > 24 || res % 2 !== 0;
+      semicircleResolution.classList.toggle('error', resInvalid);
+      const invalid = ringsInvalid || resInvalid;
+      semicircleGridError.classList.toggle('visible', invalid);
+      semicircleGridError.textContent = ringsInvalid
+        ? `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`
+        : 'Die Auflösung muss gerade sein und zwischen 2 und 24 liegen.';
+      if (invalid) return null;
+      return { shape: 'semicircle', mode: 'radial', n, resolution: res };
+    }
+    semicircleResolution.classList.remove('error');
+    semicircleGridError.classList.toggle('visible', ringsInvalid);
     semicircleGridError.textContent = `Die Ringzahl muss zwischen 1 und ${CUSTOM_MAX_DIM} liegen.`;
-    if (invalid) return null;
-    return { shape: 'semicircle', n };
+    if (ringsInvalid) return null;
+    return { shape: 'semicircle', mode: 'standard', n };
   }
   semicircleGridError.classList.remove('visible');
-  semicircleRings.classList.remove('error');
+  [semicircleRings, semicircleResolution].forEach(el => el.classList.remove('error'));
+
+  if (gridSelect.value === 'star') {
+    const tips = Number(starTips.value);
+    const tipsInvalid = !Number.isInteger(tips) || tips < STAR_TIPS_MIN || tips > STAR_TIPS_MAX;
+    starTips.classList.toggle('error', tipsInvalid);
+    if (starMode.value === 'radial') {
+      const n = validateRingsField(starRings, starGridError);
+      starWidth.classList.remove('error');
+      starHeight.classList.remove('error');
+      if (tipsInvalid) {
+        starGridError.classList.add('visible');
+        starGridError.textContent = `Spitzen müssen zwischen ${STAR_TIPS_MIN} und ${STAR_TIPS_MAX} liegen.`;
+      }
+      if (tipsInvalid || n === null) return null;
+      starGridError.classList.remove('visible');
+      return { shape: 'star', mode: 'radial', tips, n };
+    }
+    const width = Number(starWidth.value);
+    const height = Number(starHeight.value);
+    const dimsInvalid =
+      !Number.isInteger(width) || !Number.isInteger(height) ||
+      width < 1 || height < 1 || width % 2 === 0 ||
+      width > CUSTOM_MAX_DIM * 2 || height > CUSTOM_MAX_DIM * 4;
+    starWidth.classList.toggle('error', dimsInvalid);
+    starHeight.classList.toggle('error', dimsInvalid);
+    starRings.classList.remove('error');
+    const invalid = tipsInvalid || dimsInvalid;
+    starGridError.classList.toggle('visible', invalid);
+    starGridError.textContent = tipsInvalid
+      ? `Spitzen müssen zwischen ${STAR_TIPS_MIN} und ${STAR_TIPS_MAX} liegen.`
+      : 'Breite muss ungerade und mindestens 1 sein, Höhe mindestens 1.';
+    if (invalid) return null;
+    return { shape: 'star', mode: 'standard', tips, width, height };
+  }
+  starGridError.classList.remove('visible');
+  [starTips, starWidth, starHeight, starRings].forEach(el => el.classList.remove('error'));
+
+  if (gridSelect.value === 'annulus') {
+    const rings = Number(annulusRings.value);
+    const hollow = Number(annulusHollow.value);
+    const invalid =
+      !Number.isInteger(rings) || !Number.isInteger(hollow) ||
+      rings < 2 || rings > CUSTOM_MAX_DIM ||
+      hollow < 1 || hollow >= rings;
+    annulusRings.classList.toggle('error', invalid);
+    annulusHollow.classList.toggle('error', invalid);
+    annulusGridError.classList.toggle('visible', invalid);
+    annulusGridError.textContent = `Ringe zwischen 2 und ${CUSTOM_MAX_DIM}; Aushöhlung mindestens 1 und kleiner als Ringe.`;
+    if (invalid) return null;
+    return { shape: 'annulus', rings, hollow };
+  }
+  annulusGridError.classList.remove('visible');
+  [annulusRings, annulusHollow].forEach(el => el.classList.remove('error'));
+
+  if (gridSelect.value === 'compass') {
+    if (compassMode.value === 'radial') {
+      const n = validateRingsField(compassRings, compassGridError);
+      compassWidth.classList.remove('error');
+      compassHeight.classList.remove('error');
+      if (n === null) return null;
+      return { shape: 'compass', mode: 'radial', n };
+    }
+    const width = Number(compassWidth.value);
+    const height = Number(compassHeight.value);
+    const invalid =
+      !Number.isInteger(width) || !Number.isInteger(height) ||
+      width < 1 || height < 1 || width % 2 === 0 || height % 2 === 0 ||
+      width > CUSTOM_MAX_DIM || height > CUSTOM_MAX_DIM * 2;
+    compassWidth.classList.toggle('error', invalid);
+    compassHeight.classList.toggle('error', invalid);
+    compassGridError.classList.toggle('visible', invalid);
+    compassGridError.textContent = 'Breite und Höhe müssen beide ungerade und mindestens 1 sein.';
+    compassRings.classList.remove('error');
+    if (invalid) return null;
+    return { shape: 'compass', mode: 'standard', width, height };
+  }
+  compassGridError.classList.remove('visible');
+  [compassWidth, compassHeight, compassRings].forEach(el => el.classList.remove('error'));
+
+  if (gridSelect.value === 'cross') {
+    const armWidth = Number(crossArmWidth.value);
+    const armInvalid = !Number.isFinite(armWidth) || armWidth < CROSS_ARM_WIDTH_MIN || armWidth > CROSS_ARM_WIDTH_MAX;
+    crossArmWidth.classList.toggle('error', armInvalid);
+    if (crossMode.value === 'radial') {
+      const n = validateRingsField(crossRings, crossGridError);
+      crossWidth.classList.remove('error');
+      crossHeight.classList.remove('error');
+      if (armInvalid) {
+        crossGridError.classList.add('visible');
+        crossGridError.textContent = `Die Armbreite muss zwischen ${CROSS_ARM_WIDTH_MIN} und ${CROSS_ARM_WIDTH_MAX} liegen.`;
+      }
+      if (armInvalid || n === null) return null;
+      crossGridError.classList.remove('visible');
+      return { shape: 'cross', mode: 'radial', armWidth, n };
+    }
+    const width = Number(crossWidth.value);
+    const height = Number(crossHeight.value);
+    const dimsInvalid =
+      !Number.isInteger(width) || !Number.isInteger(height) ||
+      width < 1 || height < 1 || width % 2 === 0 || height % 2 === 0 ||
+      width > CUSTOM_MAX_DIM || height > CUSTOM_MAX_DIM * 2;
+    crossWidth.classList.toggle('error', dimsInvalid);
+    crossHeight.classList.toggle('error', dimsInvalid);
+    crossRings.classList.remove('error');
+    const invalid = armInvalid || dimsInvalid;
+    crossGridError.classList.toggle('visible', invalid);
+    crossGridError.textContent = armInvalid
+      ? `Die Armbreite muss zwischen ${CROSS_ARM_WIDTH_MIN} und ${CROSS_ARM_WIDTH_MAX} liegen.`
+      : 'Breite und Höhe müssen beide ungerade und mindestens 1 sein.';
+    if (invalid) return null;
+    return { shape: 'cross', mode: 'standard', armWidth, width, height };
+  }
+  crossGridError.classList.remove('visible');
+  [crossArmWidth, crossWidth, crossHeight, crossRings].forEach(el => el.classList.remove('error'));
 
   const [cols, rows] = gridSelect.value.split('x').map(Number);
   return { shape: 'rect', cols, rows };
@@ -757,14 +967,21 @@ export function getSelectedDimensions() {
    Grid-Objekt aus (für refreshForbiddenOnly, wo die Größe gleich
    bleiben soll). */
 export function specFromGrid(grid) {
-  if (grid.shape === 'hex') return { shape: 'hex', d: grid.d, v: grid.v };
-  if (grid.shape === 'circle') return { shape: 'circle', n: grid.n };
+  if (grid.shape === 'square') return { shape: 'square', mode: 'radial', n: grid.n };
+  if (grid.shape === 'hex' && grid.mode === 'radial') return { shape: 'hex', mode: 'radial', n: grid.n };
+  if (grid.shape === 'hex') return { shape: 'hex', mode: 'standard', d: grid.d, v: grid.v };
+  if (grid.shape === 'circle' && grid.mode === 'radial') return { shape: 'circle', mode: 'radial', n: grid.n, resolution: grid.unitsPerRing };
+  if (grid.shape === 'circle') return { shape: 'circle', mode: 'standard', n: grid.n };
   if (grid.shape === 'ellipse') return { shape: 'ellipse', rx: grid.rx, ry: grid.ry };
-  if (grid.shape === 'triangle') return { shape: 'triangle', width: grid.width, height: grid.height };
-  if (grid.shape === 'rhombus') return { shape: 'rhombus', width: grid.width, height: grid.height };
+  if (grid.shape === 'triangle' && grid.mode === 'radial') return { shape: 'triangle', mode: 'radial', n: grid.n };
+  if (grid.shape === 'triangle') return { shape: 'triangle', mode: 'standard', width: grid.width, height: grid.height };
+  if (grid.shape === 'rhombus' && grid.mode === 'radial')
+    return { shape: 'rhombus', mode: 'radial', n: grid.n, widthRatio: grid.widthRatio, heightRatio: grid.heightRatio };
+  if (grid.shape === 'rhombus') return { shape: 'rhombus', mode: 'standard', width: grid.width, height: grid.height };
   if (grid.shape === 'trapezoid') return { shape: 'trapezoid', top: grid.top, height: grid.height };
   if (grid.shape === 'parallelogram') return { shape: 'parallelogram', sideLength: grid.sideLength, height: grid.height, offset: grid.offset };
-  if (grid.shape === 'kite') return { shape: 'kite', h: grid.h };
+  if (grid.shape === 'kite' && grid.mode === 'radial') return { shape: 'kite', mode: 'radial', n: grid.n, tailRatio: grid.tailRatio };
+  if (grid.shape === 'kite') return { shape: 'kite', mode: 'standard', h: grid.h };
   if (grid.shape === 'pentagon' && grid.mode === 'radial') return { shape: 'pentagon', mode: 'radial', n: grid.n };
   if (grid.shape === 'pentagon') return { shape: 'pentagon', mode: grid.mode, size: grid.size };
   if (grid.shape === 'heptagon' && grid.mode === 'radial') return { shape: 'heptagon', mode: 'radial', n: grid.n };
@@ -775,27 +992,69 @@ export function specFromGrid(grid) {
   if (grid.shape === 'nonagon') return { shape: 'nonagon', mode: 'square', size: grid.size };
   if (grid.shape === 'decagon' && grid.mode === 'radial') return { shape: 'decagon', mode: 'radial', n: grid.n };
   if (grid.shape === 'decagon') return { shape: 'decagon', mode: 'rectangle', width: grid.width, height: grid.height };
-  if (grid.shape === 'semicircle') return { shape: 'semicircle', n: grid.n };
+  if (grid.shape === 'semicircle' && grid.mode === 'radial') return { shape: 'semicircle', mode: 'radial', n: grid.n, resolution: grid.resolution };
+  if (grid.shape === 'semicircle') return { shape: 'semicircle', mode: 'standard', n: grid.n };
+  if (grid.shape === 'star' && grid.mode === 'radial') return { shape: 'star', mode: 'radial', tips: grid.tips, n: grid.n };
+  if (grid.shape === 'star') return { shape: 'star', mode: 'standard', tips: grid.tips, width: grid.width, height: grid.height };
+  if (grid.shape === 'annulus') return { shape: 'annulus', rings: grid.n, hollow: grid.hollow };
+  if (grid.shape === 'compass' && grid.mode === 'radial') return { shape: 'compass', mode: 'radial', n: grid.n };
+  if (grid.shape === 'compass') return { shape: 'compass', mode: 'standard', width: grid.width, height: grid.height };
+  if (grid.shape === 'cross' && grid.mode === 'radial') return { shape: 'cross', mode: 'radial', armWidth: grid.armWidth, n: grid.n };
+  if (grid.shape === 'cross') return { shape: 'cross', mode: 'standard', armWidth: grid.armWidth, width: grid.width, height: grid.height };
   return { shape: 'rect', cols: grid.cols, rows: grid.rows };
 }
 
 export function specsEqual(a, b) {
   if (a.shape !== b.shape) return false;
-  if (a.shape === 'hex') return a.d === b.d && a.v === b.v;
-  if (a.shape === 'circle') return a.n === b.n;
+  if (a.shape === 'square') return a.n === b.n;
+  if (a.shape === 'hex') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n : a.d === b.d && a.v === b.v;
+  }
+  if (a.shape === 'circle') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n && a.resolution === b.resolution : a.n === b.n;
+  }
   if (a.shape === 'ellipse') return a.rx === b.rx && a.ry === b.ry;
-  if (a.shape === 'triangle') return a.width === b.width && a.height === b.height;
-  if (a.shape === 'rhombus') return a.width === b.width && a.height === b.height;
+  if (a.shape === 'triangle') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n : a.width === b.width && a.height === b.height;
+  }
+  if (a.shape === 'rhombus') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial'
+      ? a.n === b.n && a.widthRatio === b.widthRatio && a.heightRatio === b.heightRatio
+      : a.width === b.width && a.height === b.height;
+  }
   if (a.shape === 'trapezoid') return a.top === b.top && a.height === b.height;
   if (a.shape === 'parallelogram') return a.sideLength === b.sideLength && a.height === b.height && a.offset === b.offset;
-  if (a.shape === 'kite') return a.h === b.h;
+  if (a.shape === 'kite') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n && a.tailRatio === b.tailRatio : a.h === b.h;
+  }
   if (['pentagon', 'heptagon', 'octagon', 'nonagon', 'decagon'].includes(a.shape)) {
     if (a.mode !== b.mode) return false;
     if (a.mode === 'radial') return a.n === b.n;
     if (a.mode === 'rectangle') return a.width === b.width && a.height === b.height;
     return a.size === b.size; // diamond / square
   }
-  if (a.shape === 'semicircle') return a.n === b.n;
+  if (a.shape === 'semicircle') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n && a.resolution === b.resolution : a.n === b.n;
+  }
+  if (a.shape === 'star') {
+    if (a.mode !== b.mode || a.tips !== b.tips) return false;
+    return a.mode === 'radial' ? a.n === b.n : a.width === b.width && a.height === b.height;
+  }
+  if (a.shape === 'annulus') return a.rings === b.rings && a.hollow === b.hollow;
+  if (a.shape === 'compass') {
+    if (a.mode !== b.mode) return false;
+    return a.mode === 'radial' ? a.n === b.n : a.width === b.width && a.height === b.height;
+  }
+  if (a.shape === 'cross') {
+    if (a.mode !== b.mode || a.armWidth !== b.armWidth) return false;
+    return a.mode === 'radial' ? a.n === b.n : a.width === b.width && a.height === b.height;
+  }
   return a.cols === b.cols && a.rows === b.rows;
 }
 
@@ -828,14 +1087,17 @@ export function parseForbiddenPoints(totalPoints) {
 // Als Lookup-Tabelle statt einer langen Ternary-Kette, da inzwischen 13
 // Formen unterstützt werden.
 const GRID_BUILDERS = {
-  hex: spec => buildHexGridDefinition(spec.d, spec.v),
-  circle: spec => buildCircleGridDefinition(spec.n),
+  square: spec => buildSquareRadialGridDefinition(spec.n),
+  hex: spec => spec.mode === 'radial' ? buildHexagonRadialGridDefinition(spec.n) : buildHexGridDefinition(spec.d, spec.v),
+  circle: spec => spec.mode === 'radial' ? buildCircleGridDefinition(spec.n, spec.resolution) : buildCircleGridDefinition(spec.n),
   ellipse: spec => buildEllipseGridDefinition(spec.rx, spec.ry),
-  triangle: spec => buildTriangleGridDefinition(spec.width, spec.height),
-  rhombus: spec => buildRhombusGridDefinition(spec.width, spec.height),
+  triangle: spec => spec.mode === 'radial' ? buildTriangleRadialGridDefinition(spec.n) : buildTriangleGridDefinition(spec.width, spec.height),
+  rhombus: spec => spec.mode === 'radial'
+    ? buildRhombusRadialGridDefinition(spec.widthRatio, spec.heightRatio, spec.n)
+    : buildRhombusGridDefinition(spec.width, spec.height),
   trapezoid: spec => buildTrapezoidGridDefinition(spec.top, spec.height),
   parallelogram: spec => buildParallelogramGridDefinition(spec.sideLength, spec.height, spec.offset),
-  kite: spec => buildKiteGridDefinition(spec.h),
+  kite: spec => spec.mode === 'radial' ? buildKiteRadialGridDefinition(spec.tailRatio, spec.n) : buildKiteGridDefinition(spec.h),
   pentagon: spec => spec.mode === 'radial'
     ? buildPentagonRadialGridDefinition(spec.n)
     : spec.mode === 'square'
@@ -853,7 +1115,11 @@ const GRID_BUILDERS = {
   decagon: spec => spec.mode === 'radial'
     ? buildDecagonRadialGridDefinition(spec.n)
     : buildDecagonRectangleGridDefinition(spec.width, spec.height),
-  semicircle: spec => buildSemicircleGridDefinition(spec.n)
+  semicircle: spec => spec.mode === 'radial' ? buildSemicircleGridDefinition(spec.n, spec.resolution) : buildSemicircleGridDefinition(spec.n),
+  star: spec => spec.mode === 'radial' ? buildStarPolygonRadialGridDefinition(spec.tips, spec.n) : buildStarGridDefinition(spec.tips, spec.width, spec.height),
+  annulus: spec => buildAnnulusGridDefinition(spec.rings, spec.hollow),
+  compass: spec => spec.mode === 'radial' ? buildCompassRadialGridDefinition(spec.n) : buildCompassGridDefinition(spec.width, spec.height),
+  cross: spec => spec.mode === 'radial' ? buildCrossRadialGridDefinition(spec.armWidth, spec.n) : buildCrossGridDefinition(spec.armWidth, spec.width, spec.height)
 };
 
 /* Baut Raster + Graph für gegebene Dimensionen tatsächlich neu auf
@@ -956,6 +1222,10 @@ export function handleGridSelectChange() {
   nonagonGridGroup.style.display = gridSelect.value === 'nonagon' ? 'block' : 'none';
   decagonGridGroup.style.display = gridSelect.value === 'decagon' ? 'block' : 'none';
   semicircleGridGroup.style.display = gridSelect.value === 'semicircle' ? 'block' : 'none';
+  starGridGroup.style.display = gridSelect.value === 'star' ? 'block' : 'none';
+  annulusGridGroup.style.display = gridSelect.value === 'annulus' ? 'block' : 'none';
+  compassGridGroup.style.display = gridSelect.value === 'compass' ? 'block' : 'none';
+  crossGridGroup.style.display = gridSelect.value === 'cross' ? 'block' : 'none';
   rebuildGridAndRefresh();
 }
 
@@ -973,6 +1243,66 @@ function handlePolygonModeChange(modeSelect, fieldGroupsByMode) {
     group.style.display = modeSelect.value === mode ? 'block' : 'none';
   });
   rebuildGridAndRefresh();
+}
+
+export function handleCustomModeChange() {
+  handlePolygonModeChange(customMode, {
+    grid: customStandardFields, radial: customRadialFields
+  });
+}
+
+export function handleHexModeChange() {
+  handlePolygonModeChange(hexMode, {
+    standard: hexStandardFields, radial: hexRadialFields
+  });
+}
+
+export function handleTriangleModeChange() {
+  handlePolygonModeChange(triangleMode, {
+    standard: triangleStandardFields, radial: triangleRadialFields
+  });
+}
+
+export function handleRhombusModeChange() {
+  handlePolygonModeChange(rhombusMode, {
+    standard: rhombusStandardFields, radial: rhombusRadialFields
+  });
+}
+
+export function handleKiteModeChange() {
+  handlePolygonModeChange(kiteMode, {
+    standard: kiteStandardFields, radial: kiteRadialFields
+  });
+}
+
+export function handleStarModeChange() {
+  handlePolygonModeChange(starMode, {
+    standard: starStandardFields, radial: starRadialFields
+  });
+}
+
+export function handleCompassModeChange() {
+  handlePolygonModeChange(compassMode, {
+    standard: compassStandardFields, radial: compassRadialFields
+  });
+}
+
+export function handleCrossModeChange() {
+  handlePolygonModeChange(crossMode, {
+    standard: crossStandardFields, radial: crossRadialFields
+  });
+}
+
+export function handleCircleModeChange() {
+  handlePolygonModeChange(circleMode, {
+    standard: circleStandardHint, radial: circleRadialFields
+  });
+}
+
+export function handleSemicircleModeChange() {
+  handlePolygonModeChange(semicircleMode, {
+    standard: semicircleStandardHint, radial: semicircleRadialFields
+  });
 }
 
 export function handlePentagonModeChange() {

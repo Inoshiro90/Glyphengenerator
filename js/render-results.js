@@ -164,7 +164,11 @@ export function renderSingle(grid, graph, result) {
 
   state.currentSingleResult = { grid, graph, edges, rootVertex, isTree };
 
-  setComboExportVisibility(false);
+  // Zeigt die Einzelglyphen-Export-Buttons (SVG/PNG) neben der Glyphe —
+  // dieselbe .export-row wird auch für den "Mehrere Elemente"-Modus
+  // genutzt; im Kombinationen-Modus bleibt sie ausgeblendet (dort gibt
+  // es die eigene Karten-/ZIP-Export-Toolbar).
+  setComboExportVisibility(true);
 }
 
 export function renderMulti(grid, graph, multi, isTreeElements) {
@@ -218,7 +222,7 @@ export function renderMulti(grid, graph, multi, isTreeElements) {
     elements
   };
 
-  setComboExportVisibility(false);
+  setComboExportVisibility(true);
 }
 
 export function renderEmpty(message) {
